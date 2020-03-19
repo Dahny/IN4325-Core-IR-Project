@@ -3,6 +3,7 @@ import numpy as np
 import os
 import json
 from baselineFeatures import compute_baseline_features
+from semanticFeatures import compute_semantic_features
 
 
 FINAL_HEADERS = ['query_id','query','table_id','row','col','nul',
@@ -50,6 +51,7 @@ def feature_extraction(input_file_qrels: str, input_file_queries: str, input_fil
     data_table[table_col] = data_table['table_id'].map(tables) 
 
     data_table = compute_baseline_features(data_table, query_col, table_col)
+    data_table = compute_semantic_features(data_table, query_col, table_col)
 
     print("Computing all features completed")
     
@@ -57,7 +59,7 @@ def feature_extraction(input_file_qrels: str, input_file_queries: str, input_fil
     print(f'Missing the following features from their experiment:\n{missing_features}')
 
     # df.to_csv(output_file, sep=',', index=False, columns=FINAL_HEADERS)
-    data_table.to_csv(output_file, sep=',', index=False)
+    data_table.drop(columns=[table_col]).to_csv(output_file, sep=',', index=False)
 
 
 if __name__ == '__main__':

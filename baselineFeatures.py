@@ -45,7 +45,7 @@ def compute_baseline_features(data_table, query_col, table_col):
         'csr_score': mlm_similarity,
     }
     for k, v in query_table_fatures.items():
-        data_table[k] = data_table.apply(lambda x: v(data_table[query_col], data_table[table_col]))
+        data_table[k] = data_table.apply(lambda x: v(x[query_col], x[table_col]), axis=1)
 
     return data_table
 
