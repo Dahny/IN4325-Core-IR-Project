@@ -19,5 +19,5 @@ for root, dirs, files in os.walk("tables_redi2_1"):
                         output[table1] = data[table1]
                         break
 
-with open('data/output.json', 'w') as outfile:
+with open('data/raw_table_data.json', 'w') as outfile:
     json.dump(output, outfile)
