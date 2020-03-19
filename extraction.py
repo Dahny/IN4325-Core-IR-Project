@@ -51,9 +51,10 @@ def feature_extraction(input_file_qrels: str, input_file_queries: str, input_fil
 
     data_table = compute_baseline_features(data_table, query_col, table_col)
 
-    print(data_table.head())
-    print(data_table[table_col])
     print("Computing all features completed")
+    
+    missing_features = set(FINAL_HEADERS) - set(data_table.columns.values)
+    print(f'Missing the following features from their experiment:\n{missing_features}')
 
     # df.to_csv(output_file, sep=',', index=False, columns=FINAL_HEADERS)
     data_table.to_csv(output_file, sep=',', index=False)
