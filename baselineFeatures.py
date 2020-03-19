@@ -1,13 +1,155 @@
+# FINAL_HEADERS = ['query_id','query','table_id','row','col','nul',
+#   'in_link','out_link','pgcount','tImp','tPF','leftColhits','SecColhits',
+#   'bodyhits','PMI','qInPgTitle','qInTableTitle','yRank','csr_score','idf1',
+#   'idf2','idf3','idf4','idf5','idf6','max','sum','avg','sim','emax','esum','eavg',
+#   'esim','cmax','csum','cavg','csim','remax','resum','reavg','resim','query_l','rel']
 
 
-def compute_baseline_features(item_in, item_out):
-    number_of_rows(item_in, item_out)
-    number_of_columns(item_in, item_out)
+
+def compute_baseline_features(data_table, query_col, table_col):
+    ''' Compute all features regarded as baseline features in the paper '''
+    # Query features
+    query_features = {
+      'query_l': query_length,
+      'idf1': idf_page_title,
+      'idf2': idf_section_title,
+      'idf3': idf_table_caption,
+      'idf4': idf_table_heading,
+      'idf5': idf_table_body,
+      'idf6': idf_catch_all,
+    }
+    for k, v in query_features.items():
+      data_table[k] = data_table[query_col].map(v)
+    
+
+    # Table features
+    table_features = {
+      'row': number_of_rows,
+      'col': number_of_columns,
+      'nul': number_of_null,
+      'in_link': number_of_in_links,
+      'out_link': number_of_out_links,
+      'tImp': table_importance,
+      'tPF': page_fraction,
+      'PMI': pmi,
+      'pgcount': page_views,
+    }
+    for k, v in table_features.items():
+      data_table[k] = data_table[table_col].map(v)
+
+    # Query-table features
+
+    return data_table
 
 
-def number_of_rows(item_in, item_out):
-    item_out[f"nRows"] = item_in['numDataRows']
+### Query features
+def query_length(query):
+    ''' Takes the query and returns the length '''
+    return len(query.split(' '))
 
 
-def number_of_columns(item_in, item_out):
-    item_out[f"nColumns"] = item_in['numCols']
+def idf_page_title(query):
+    ''' Takes the query and returns the sum of the IDF scores of the words in the page titles'''
+    ''' ( IDF_t = log ( N / df_t ) 
+        Here N is the number of documents and df_t the number of documents containing word t 
+        This is then summed for all terms in the query ''' 
+    ''' Note: this is also dependent on data about all documents (/tables). 
+    We still need to get this here somehow '''
+    return 0
+
+
+def idf_section_title(query):
+    ''' Takes the query and returns the sum of the IDF scores of the words in the section titles'''
+    ''' ( IDF_t = log ( N / df_t ) 
+        Here N is the number of documents and df_t the number of documents containing word t 
+        This is then summed for all terms in the query ''' 
+    ''' Note: this is also dependent on data about all documents (/tables). 
+    We still need to get this here somehow '''
+    return 0
+
+
+def idf_table_caption(query):
+    ''' Takes the query and returns the sum of the IDF scores of the words in the table captions '''
+    ''' ( IDF_t = log ( N / df_t ) 
+        Here N is the number of documents and df_t the number of documents containing word t 
+        This is then summed for all terms in the query ''' 
+    ''' Note: this is also dependent on data about all documents (/tables). 
+    We still need to get this here somehow '''
+    return 0
+
+
+def idf_table_heading(query):
+    ''' Takes the query and returns the sum of the IDF scores of the words in the table headings '''
+    ''' ( IDF_t = log ( N / df_t ) 
+        Here N is the number of documents and df_t the number of documents containing word t 
+        This is then summed for all terms in the query ''' 
+    ''' Note: this is also dependent on data about all documents (/tables). 
+    We still need to get this here somehow '''
+    return 0
+
+
+def idf_table_body(query):
+    ''' Takes the query and returns the sum of the IDF scores of the words in the table bodies '''
+    ''' ( IDF_t = log ( N / df_t ) 
+        Here N is the number of documents and df_t the number of documents containing word t 
+        This is then summed for all terms in the query ''' 
+    ''' Note: this is also dependent on data about all documents (/tables). 
+    We still need to get this here somehow '''
+    return 0
+
+def idf_catch_all(query):
+    ''' Takes the query and returns the sum of the IDF scores of the words in the all text of the tables '''
+    ''' ( IDF_t = log ( N / df_t ) 
+        Here N is the number of documents and df_t the number of documents containing word t 
+        This is then summed for all terms in the query ''' 
+    ''' Note: this is also dependent on data about all documents (/tables). 
+    We still need to get this here somehow '''
+    return 0
+
+
+### Table features
+def number_of_rows(table):
+    ''' Takes the table and returns the number of rows '''
+    return 0
+
+
+def number_of_columns(table):
+    ''' Takes the table and return the number of columns '''
+    return 0
+
+
+def number_of_null(table):
+    ''' Takes the table and returns the number of empty cells '''
+    return 0
+
+
+def number_of_in_links(table):
+    ''' Takes the table and returns the number of inlinks to the page embedding the table '''
+    return 0
+
+
+def number_of_out_links(table):
+    ''' Takes the table and returns the number of outlinks to the page embedding the table '''
+    return 0
+
+
+def table_importance(table):
+    ''' Takes the table and returns the inverse of the number of tables on the page '''
+    return 0
+
+
+def page_fraction(table):
+    ''' Takes the table and returns the ratio of table size to page size '''
+    return 0
+
+
+def pmi(table):
+    ''' Takes the table and returns the ACSDb-based schema coherency score '''
+    return 0
+
+
+def page_views(table):
+    ''' Takes the table and returns the page views of the table '''
+    return 0
+
+### Query-table features

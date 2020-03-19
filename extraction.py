@@ -1,16 +1,40 @@
 import pandas as pd
+import numpy as np
 import os
 import json
-import baselineFeatures
+from baselineFeatures import compute_baseline_features
 
 
-def read_items(input_file: str):
-    items = {}
+FINAL_HEADERS = ['query_id','query','table_id','row','col','nul',
+  'in_link','out_link','pgcount','tImp','tPF','leftColhits','SecColhits',
+  'bodyhits','PMI','qInPgTitle','qInTableTitle','yRank','csr_score','idf1',
+  'idf2','idf3','idf4','idf5','idf6','max','sum','avg','sim','emax','esum','eavg',
+  'esim','cmax','csum','cavg','csim','remax','resum','reavg','resim','query_l','rel']
+INPUT_FILE_QRELS = 'data/qrels.txt'
+INPUT_FILE_QUERIES = 'data/queries.txt'
+FEATURE_FILE = 'data/features.csv'
+# INPUT_FILES_TABLE = ?
+
+def read_qrels(input_file: str):
+    data = pd.read_table(input_file, sep = '\t', names=['query_id', 'unknown', 'table_id', 'rel'])
+    data = data.drop(columns=['unknown'])
+    return data
+
+def read_queries(input_file: str):
+    queries = {}
+    with open(input_file, 'r') as f:
+        for line in f:
+            split = line.split(' ')
+            queries[int(split[0])] = ' '.join(split[1:]).strip()
+    return queries
+
+def read_tables(input_file: str):
+    tables = {}
     with open(input_file, 'rb') as file:
         for line in file:
-            item = json.loads(line.decode('utf-8'))
-            items[int(item["id"])] = item
-    return items
+            table = json.loads(line.decode('utf-8'))
+            tables[int(table["id"])] = item
+    return tables
 
 
 def write_items(items, output_file):
@@ -18,23 +42,25 @@ def write_items(items, output_file):
     df.to_csv(output_file, sep=',', index=False)
 
 
-def feature_extraction(input_file: str, output_file: str):
+def feature_extraction(input_file_qrels: str, input_file_queries: str, output_file: str):
+    query_col = 'query'
+    table_col = 'raw_table_data'
+    
+    data_table = read_qrels(input_file_qrels)
+    queries = read_queries(input_file_queries)
+    # tables = read_tables('data/')
+    tables = lambda x: 0
 
-    items_in = read_items(input_file)
-    items_out = {}
+    data_table[query_col] = data_table['query_id'].map(queries)
+    data_table[table_col] = data_table['table_id'].map(tables) 
 
-    if os.path.isfile(output_file):
-        print("Target output file exists, reading existing data.")
-        items_out = pd.read_csv(output_file).set_index('id').to_dict(orient="index")
+    data_table = compute_baseline_features(data_table, query_col, table_col)
 
-    for id in items_in:
-        if id not in items_out:
-            items_out[id] = {"id": id}
-        else:
-            items_out[id]["id"] = id
-
-        baselineFeatures.compute_baseline_features(items_in[id], items_out[id])
-
+    print(data_table.head())
     print("Computing all features completed")
 
-    write_items(items_out, output_file)
+    # df.to_csv(output_file, sep=',', index=False, columns=FINAL_HEADERS)
+    data_table.to_csv(output_file, sep=',', index=False)
+
+if __name__ == '__main__':
+    feature_extraction(INPUT_FILE_QRELS, INPUT_FILE_QUERIES, FEATURE_FILE)
