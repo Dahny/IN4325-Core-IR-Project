@@ -1,4 +1,5 @@
 import pandas as pd
+from nltk import word_tokenize
 
 # FEATURES from their features.csv file:
 # {
@@ -53,7 +54,6 @@ def compute_semantic_features(data_table, query_col, table_col):
             data_table[i[0] + 'sim'] = i[1].apply(lambda x: early_fusion_incl_tfidf(x.iloc[0], x.iloc[1]), axis=1)
         else:
             data_table[i[0] + 'sim'] = i[1].apply(lambda x: early_fusion(x.iloc[0], x.iloc[1]), axis=1)
-        print(type(i[1].apply(lambda x: late_fusion(x.iloc[0], x.iloc[1]), axis=1)))
         data_table[i[0] + 'avg'], data_table[i[0] + 'max'], data_table[i[0] + 'sum'] = \
             zip(*i[1].apply(lambda x: late_fusion(x.iloc[0], x.iloc[1]), axis=1))
 
@@ -63,11 +63,15 @@ def compute_semantic_features(data_table, query_col, table_col):
 ## Function related to 3.1 Content Extraction
 def query_word_based_set(query):
     ''' All word tokens of the query in a set '''
-    return {}
+    return word_tokenize(query)
 
 
 def table_word_based_set(table):
     ''' All word tokens from the title, captions and heading of the table '''
+    pgTable_tokens = word_tokenize(table['pgTitle'])
+
+    if table['pgTitle'] == "Auburn Tigers swimming and diving":
+        print(pgTable_tokens)
     return {}
 
 
