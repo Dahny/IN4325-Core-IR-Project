@@ -1,7 +1,7 @@
 import pandas as pd
 import os
 import json
-from ad_hoc_table_retrieval.feature_extraction import baselineFeatures
+import baselineFeatures
 
 
 def read_items(input_file: str):
