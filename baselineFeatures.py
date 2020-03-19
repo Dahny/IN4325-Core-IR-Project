@@ -4,40 +4,50 @@
 #   'idf2','idf3','idf4','idf5','idf6','max','sum','avg','sim','emax','esum','eavg',
 #   'esim','cmax','csum','cavg','csim','remax','resum','reavg','resim','query_l','rel']
 
-
-
 def compute_baseline_features(data_table, query_col, table_col):
     ''' Compute all features regarded as baseline features in the paper '''
     # Query features
     query_features = {
-      'query_l': query_length,
-      'idf1': idf_page_title,
-      'idf2': idf_section_title,
-      'idf3': idf_table_caption,
-      'idf4': idf_table_heading,
-      'idf5': idf_table_body,
-      'idf6': idf_catch_all,
+        'query_l': query_length,
+        'idf1': idf_page_title,
+        'idf2': idf_section_title,
+        'idf3': idf_table_caption,
+        'idf4': idf_table_heading,
+        'idf5': idf_table_body,
+        'idf6': idf_catch_all,
     }
     for k, v in query_features.items():
-      data_table[k] = data_table[query_col].map(v)
+        data_table[k] = data_table[query_col].map(v)
     
-
     # Table features
     table_features = {
-      'row': number_of_rows,
-      'col': number_of_columns,
-      'nul': number_of_null,
-      'in_link': number_of_in_links,
-      'out_link': number_of_out_links,
-      'tImp': table_importance,
-      'tPF': page_fraction,
-      'PMI': pmi,
-      'pgcount': page_views,
+        'row': number_of_rows,
+        'col': number_of_columns,
+        'nul': number_of_null,
+        'in_link': number_of_in_links,
+        'out_link': number_of_out_links,
+        'tImp': table_importance,
+        'tPF': page_fraction,
+        'PMI': pmi,
+        'pgcount': page_views,
     }
     for k, v in table_features.items():
-      data_table[k] = data_table[table_col].map(v)
+        data_table[k] = data_table[table_col].map(v)
 
     # Query-table features
+    query_table_fatures = {
+        'leftColhits': term_frequency_query_in_left_column,
+        'SecColhits': term_frequency_query_in_second_column,
+        'bodyhits': term_frequency_query_in_table_body,
+        'qInPgTitle': ratio_query_terms_in_page_title,
+        'qInTableTitle': ratio_query_terms_in_table_title,
+        'yRank': y_rank,
+        # guessing that this is the MLM similarity, have to confirm this by direct comparison with
+        # their feature.csv file
+        'sim': mlm_similarity,
+    }
+    for k, v in query_table_fatures.items():
+        data_table[k] = data_table.apply(lambda x: v(data_table[query_col], data_table[table_col]))
 
     return data_table
 
@@ -97,6 +107,7 @@ def idf_table_body(query):
     We still need to get this here somehow '''
     return 0
 
+
 def idf_catch_all(query):
     ''' Takes the query and returns the sum of the IDF scores of the words in the all text of the tables '''
     ''' ( IDF_t = log ( N / df_t ) 
@@ -152,4 +163,38 @@ def page_views(table):
     ''' Takes the table and returns the page views of the table '''
     return 0
 
+
 ### Query-table features
+def term_frequency_query_in_left_column(query, table):
+    ''' Total query term frequency in the leftmost column cells '''
+    return 0
+
+
+def term_frequency_query_in_second_column(query, table):
+    ''' Total query term frequency in second-to-leftmost column cells '''
+    return 0
+
+
+def term_frequency_query_in_table_body(query, table):
+    ''' Total query term frequency in the table body '''
+    return 0
+
+
+def ratio_query_terms_in_page_title(query, table):
+    '''  Ratio of the number of query tokens found in page title to total number of tokens '''
+    return 0
+
+
+def ratio_query_terms_in_table_title(query, table):
+    ''' Ratio of the number of query tokens found in table title to total number of tokens '''
+    return 0
+
+
+def y_rank(query, table):
+    '''  Rank of the table’s Wikipedia page in Web search engine results for the query '''
+    return 0
+
+
+def mlm_similarity(query, table):
+    ''' Language modeling score between query and multi-field document repr. of the table '''
+    return 0
