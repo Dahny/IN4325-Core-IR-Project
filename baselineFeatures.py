@@ -42,9 +42,7 @@ def compute_baseline_features(data_table, query_col, table_col):
         'qInPgTitle': ratio_query_terms_in_page_title,
         'qInTableTitle': ratio_query_terms_in_table_title,
         'yRank': y_rank,
-        # guessing that this is the MLM similarity, have to confirm this by direct comparison with
-        # their feature.csv file
-        'sim': mlm_similarity,
+        'csr_score': mlm_similarity,
     }
     for k, v in query_table_fatures.items():
         data_table[k] = data_table.apply(lambda x: v(data_table[query_col], data_table[table_col]))
