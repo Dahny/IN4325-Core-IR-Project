@@ -4,7 +4,7 @@
 #   'idf2','idf3','idf4','idf5','idf6','max','sum','avg','sim','emax','esum','eavg',
 #   'esim','cmax','csum','cavg','csim','remax','resum','reavg','resim','query_l','rel']
 
-def compute_baseline_features(data_table, query_col, table_col):
+def compute_baseline_features(data_table, query_col='query', table_col='raw_table_data'):
     ''' Compute all features regarded as baseline features in the paper '''
     # Query features
     query_features = {

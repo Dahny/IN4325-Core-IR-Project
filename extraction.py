@@ -10,7 +10,7 @@ FINAL_HEADERS = ['query_id','query','table_id','row','col','nul',
   'in_link','out_link','pgcount','tImp','tPF','leftColhits','SecColhits',
   'bodyhits','PMI','qInPgTitle','qInTableTitle','yRank','csr_score','idf1',
   'idf2','idf3','idf4','idf5','idf6','max','sum','avg','sim','emax','esum','eavg',
-  'esim','cmax','csum','cavg','csim','remax','resum','reavg','resim','query_l','rel']
+'esim','cmax','csum','cavg','csim','remax','resum','reavg','resim','query_l','rel']
 
 INPUT_FILE_QRELS = 'data/qrels.txt'
 INPUT_FILE_QUERIES = 'data/queries.txt'
@@ -50,8 +50,15 @@ def feature_extraction(input_file_qrels: str, input_file_queries: str, input_fil
     data_table[query_col] = data_table['query_id'].map(queries)
     data_table[table_col] = data_table['table_id'].map(tables) 
 
+    import time
+    start_time = time.time()
+    print('---------- START COMPUTING BASELINE FEATURES ----------')
     data_table = compute_baseline_features(data_table, query_col, table_col)
+    mid_time = time.time()
+    print(f'---------- TOOK {mid_time - start_time} SECONDS FOR BASELINE FEATURE EXTRACTION ----------')
+    print('---------- START COMPUTING SEMANTIC FEATURES ----------')
     data_table = compute_semantic_features(data_table, query_col, table_col)
+    print(f'---------- TOOK {time.time() - mid_time} SECONDS FOR SEMANTIC FEATURE EXTRACTION ----------')
 
     print("Computing all features completed")
     
