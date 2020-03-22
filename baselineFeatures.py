@@ -129,7 +129,12 @@ def number_of_columns(table):
 
 def number_of_null(table):
     ''' Takes the table and returns the number of empty cells '''
-    return 0
+    nulls = 0
+    for row in table['data']:
+        for cell in row:
+            if cell == "":
+                nulls += 1
+    return nulls
 
 
 def number_of_in_links(table):
