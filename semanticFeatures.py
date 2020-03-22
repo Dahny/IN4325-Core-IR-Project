@@ -142,7 +142,7 @@ def late_fusion(query, table):
     all_pairs = np.zeros(len(query) * len(table))
     for i, q in enumerate(query):
         for j, t in enumerate(table):
-            all_pairs[i*(j+1)+j] = cosine_similarity(q.reshape(1, -1) ,t.reshape(1, -1))
+            all_pairs[i*len(table)-1+j] = cosine_similarity(q.reshape(1, -1) ,t.reshape(1, -1))
     return all_pairs.mean(), all_pairs.max(), all_pairs.sum()
 
 
