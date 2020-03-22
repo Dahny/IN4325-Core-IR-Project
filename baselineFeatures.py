@@ -119,12 +119,12 @@ def idf_catch_all(query):
 ### Table features
 def number_of_rows(table):
     ''' Takes the table and returns the number of rows '''
-    return 0
+    return len(table['data']) + 1
 
 
 def number_of_columns(table):
     ''' Takes the table and return the number of columns '''
-    return 0
+    return len(table['title'])
 
 
 def number_of_null(table):
