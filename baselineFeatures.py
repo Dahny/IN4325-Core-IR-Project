@@ -63,7 +63,7 @@ def compute_baseline_features(data_table, query_col='query', table_col='raw_tabl
 
 # Query features
 
-def query_length(query, _):
+def query_length(query):
     ''' Takes the query and returns the length '''
     return len(query.split(' '))
 
@@ -108,7 +108,6 @@ def idf(query, full_data_table):
             for row in table['data']:
                 data_row = list(map(lambda v: word_tokenize(v.lower().replace('|', ' ')), row))
                 for cell in data_row:
-                    print("cell ", cell)
                     if tokenized_query[i] in cell:
                         counter_items_data[i] += 1
 
