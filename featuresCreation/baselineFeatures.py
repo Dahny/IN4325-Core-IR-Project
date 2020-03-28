@@ -14,16 +14,16 @@ import wikipediaapi
 from nltk import word_tokenize
 from featuresCreation.create_dictionaries import preprocess_string
 import pageviewapi
+from main import main_path_name
 wiki = wikipediaapi.Wikipedia('en', extract_format=wikipediaapi.ExtractFormat.HTML)
 
 
-def compute_baseline_features(data_table, query_col='query', table_col='raw_table_data', path_name=''):
+def compute_baseline_features(data_table, query_col='query', table_col='raw_table_data'):
     """
     Compute all featuresCreation regarded as baseline featuresCreation in the paper
     :param data_table:
     :param query_col:
     :param table_col:
-    :param path_name:
     :return:
     """
 
@@ -40,7 +40,7 @@ def compute_baseline_features(data_table, query_col='query', table_col='raw_tabl
         'idf6': idf_catch_all,
      }
     for k, v in query_features.items():
-        data_table[k] = data_table[query_col].map(lambda x: v(x, n_documents, path_name))
+        data_table[k] = data_table[query_col].map(lambda x: v(x, n_documents))
     
     # Table featuresCreation
     table_features = {
@@ -55,7 +55,7 @@ def compute_baseline_features(data_table, query_col='query', table_col='raw_tabl
         'pgview': average_page_view,
     }
     for k, v in table_features.items():
-        data_table[k] = data_table[table_col].map(lambda x: v(x, n_documents, path_name))
+        data_table[k] = data_table[table_col].map(lambda x: v(x, n_documents))
 
     # Query-table featuresCreation
     query_table_fatures = {
@@ -85,15 +85,14 @@ def query_length(query, _):
     return len(query.split(' '))
 
 
-def idf_page_title(query, n, path_name):
+def idf_page_title(query, n):
     """
     Takes the query and returns the sum of the IDF scores of the words in the page titles
     :param query:
     :param n:
-    :param path_name:
     :return:
     """
-    with open(path_name + '/dictionaries/dict_page_titles.json') as file:
+    with open(main_path_name + '/dictionaries/dict_page_titles.json') as file:
         dict_page_titles = json.load(file)
         file.close()
     preprocessed_query = preprocess_string(query)
@@ -104,15 +103,14 @@ def idf_page_title(query, n, path_name):
     return final_idf
 
 
-def idf_section_title(query, n, path_name):
+def idf_section_title(query, n):
     """
     Takes the query and returns the sum of the IDF scores of the words in the section titles
     :param query:
     :param n:
-    :param path_name:
     :return:
     """
-    with open(path_name + '/dictionaries/dict_section_titles') as file:
+    with open(main_path_name + '/dictionaries/dict_section_titles') as file:
         dict_section_titles = json.load(file)
         file.close()
     preprocessed_query = preprocess_string(query)
@@ -123,15 +121,14 @@ def idf_section_title(query, n, path_name):
     return final_idf
 
 
-def idf_table_caption(query, n, path_name):
+def idf_table_caption(query, n):
     """
     Takes the query and returns the sum of the IDF scores of the words in the table captions
     :param query:
     :param n:
-    :param path_name:
     :return:
     """
-    with open(path_name + '/dictionaries/dict_captions.json') as file:
+    with open(main_path_name + '/dictionaries/dict_captions.json') as file:
         dict_captions = json.load(file)
         file.close()
     preprocessed_query = preprocess_string(query)
@@ -142,15 +139,14 @@ def idf_table_caption(query, n, path_name):
     return final_idf
 
 
-def idf_table_heading(query, n, path_name):
+def idf_table_heading(query, n):
     """
     Takes the query and returns the sum of the IDF scores of the words in the table headings
     :param query:
     :param n:
-    :param path_name:
     :return:
     """
-    with open(path_name + '/dictionaries/dict_headers.json') as file:
+    with open(main_path_name + '/dictionaries/dict_headers.json') as file:
         dict_headers = json.load(file)
         file.close()
     preprocessed_query = preprocess_string(query)
@@ -161,15 +157,14 @@ def idf_table_heading(query, n, path_name):
     return final_idf
 
 
-def idf_table_body(query, n, path_name):
+def idf_table_body(query, n):
     """
     Takes the query and returns the sum of the IDF scores of the words in the table bodies
     :param query:
     :param n:
-    :param path_name:
     :return:
     """
-    with open(path_name + '/dictionaries/dict_data.json') as file:
+    with open(main_path_name + '/dictionaries/dict_data.json') as file:
         dict_data = json.load(file)
         file.close()
     preprocessed_query = preprocess_string(query)
@@ -180,27 +175,26 @@ def idf_table_body(query, n, path_name):
     return final_idf
 
 
-def idf_catch_all(query, n, path_name):
+def idf_catch_all(query, n):
     """
     Takes the query and returns the sum of the IDF scores of the words in the all text of the tables
     :param query:
     :param n:
-    :param path_name:
     :return:
     """
-    with open(path_name + '/dictionaries/dict_page_titles.json') as file:
+    with open(main_path_name + '/dictionaries/dict_page_titles.json') as file:
         dict_page_titles = json.load(file)
         file.close()
-    with open(path_name + '/dictionaries/dict_section_titles') as file:
+    with open(main_path_name + '/dictionaries/dict_section_titles') as file:
         dict_section_titles = json.load(file)
         file.close()
-    with open(path_name + '/dictionaries/dict_captions.json') as file:
+    with open(main_path_name + '/dictionaries/dict_captions.json') as file:
         dict_captions = json.load(file)
         file.close()
-    with open(path_name + '/dictionaries/dict_headers.json') as file:
+    with open(main_path_name + '/dictionaries/dict_headers.json') as file:
         dict_headers = json.load(file)
         file.close()
-    with open(path_name + '/dictionaries/dict_data.json') as file:
+    with open(main_path_name + '/dictionaries/dict_data.json') as file:
         dict_data = json.load(file)
         file.close()
 
@@ -313,15 +307,14 @@ def page_fraction(table, _):
     return table_size / n_words
 
 
-def pmi(table, n, path_name):
+def pmi(table, n):
     """
     Takes the table and returns the ACSDb-based schema coherency score
     :param table:
     :param n:
-    :param path_name:
     :return:
     """
-    with open(path_name + '/dictionaries/dict_headers.json') as file:
+    with open(main_path_name + '/dictionaries/dict_headers.json') as file:
         dict_headers = json.load(file)
         file.close()
 
