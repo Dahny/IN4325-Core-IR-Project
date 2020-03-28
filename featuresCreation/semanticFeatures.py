@@ -28,7 +28,7 @@ def compute_semantic_features(data_table, query_col='query', table_col='raw_tabl
     
     entities_in_query = unique_query_execution(words_in_query, entities_from_words)
 
-    # TODO: Implement entities from table function as accoreding to paper
+    # TODO: Implement entities from table function as according to paper
     entities_in_table = words_in_table.map(entities_from_table)
 
     ## See 3.2 in the paper for the following section
@@ -81,6 +81,7 @@ def tokenize_table(table, incl_headers=True):
 
     result = [x.lower() for x in list(set(pgTable_tokens + caption_tokens + headers_tokens))]
     return result
+
 
 def entities_from_words(words, use_n_grams=True, k=10):
     ''' Return all words in the data that are entities '''

@@ -1,9 +1,7 @@
 import pandas as pd
-import numpy as np
-import os
 import json
-from baselineFeatures import compute_baseline_features
-from semanticFeatures import compute_semantic_features
+from features.baselineFeatures import compute_baseline_features
+from features.semanticFeatures import compute_semantic_features
 
 
 FINAL_HEADERS = ['query_id','query','table_id','row','col','nul',
@@ -17,6 +15,7 @@ INPUT_FILE_QUERIES = 'data/queries.txt'
 INPUT_FILE_TABLES = 'data/raw_table_data.json'
 
 FEATURE_FILE = 'data/features.csv'
+
 
 def read_qrels(input_file: str):
     data = pd.read_table(input_file, sep = '\t', names=['query_id', 'unknown', 'table_id', 'rel'])
