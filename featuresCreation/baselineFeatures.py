@@ -8,7 +8,6 @@ from bs4 import BeautifulSoup
 import requests
 import re
 import wikipedia
-import numpy as np
 import json
 import math
 import wikipediaapi
@@ -18,25 +17,13 @@ import pageviewapi
 wiki = wikipediaapi.Wikipedia('en', extract_format=wikipediaapi.ExtractFormat.HTML)
 
 
-with open('dictionaries/dict_headers.json') as f:
-    dict_headers = json.load(f)
-with open('dictionaries/dict_page_titles.json') as f:
-    dict_page_titles = json.load(f)
-with open('dictionaries/dict_section_titles') as f:
-    dict_section_titles = json.load(f)
-with open('dictionaries/dict_captions.json') as f:
-    dict_captions = json.load(f)
-with open('dictionaries/dict_data.json') as f:
-    dict_data = json.load(f)
-with open('dictionaries/dict_queries.json') as f:
-    dict_queries = json.load(f)
-
-def compute_baseline_features(data_table, query_col='query', table_col='raw_table_data'):
+def compute_baseline_features(data_table, query_col='query', table_col='raw_table_data', path_name=''):
     """
     Compute all featuresCreation regarded as baseline featuresCreation in the paper
     :param data_table:
     :param query_col:
     :param table_col:
+    :param path_name:
     :return:
     """
 
@@ -53,7 +40,7 @@ def compute_baseline_features(data_table, query_col='query', table_col='raw_tabl
         'idf6': idf_catch_all,
      }
     for k, v in query_features.items():
-        data_table[k] = data_table[query_col].map(lambda x: v(x, n_documents))
+        data_table[k] = data_table[query_col].map(lambda x: v(x, n_documents, path_name))
     
     # Table featuresCreation
     table_features = {
@@ -68,7 +55,7 @@ def compute_baseline_features(data_table, query_col='query', table_col='raw_tabl
         'pgview': average_page_view,
     }
     for k, v in table_features.items():
-        data_table[k] = data_table[table_col].map(lambda x: v(x, n_documents))
+        data_table[k] = data_table[table_col].map(lambda x: v(x, n_documents, path_name))
 
     # Query-table featuresCreation
     query_table_fatures = {
@@ -89,17 +76,26 @@ def compute_baseline_features(data_table, query_col='query', table_col='raw_tabl
 # Query featuresCreation
 
 def query_length(query, _):
-    ''' Takes the query and returns the length '''
+    """
+    Takes the query and returns the length
+    :param query:
+    :param _:
+    :return:
+    """
     return len(query.split(' '))
 
 
-def idf_page_title(query, n):
-    ''' Takes the query and returns the sum of the IDF scores of the words in the page titles'''
-    ''' ( IDF_t = log ( N / df_t ) 
-        Here N is the number of documents and df_t the number of documents containing word t 
-        This is then summed for all terms in the query '''
-    ''' Note: this is also dependent on data about all documents (/tables). 
-    We still need to get this here somehow '''
+def idf_page_title(query, n, path_name):
+    """
+    Takes the query and returns the sum of the IDF scores of the words in the page titles
+    :param query:
+    :param n:
+    :param path_name:
+    :return:
+    """
+    with open(path_name + '/dictionaries/dict_page_titles.json') as file:
+        dict_page_titles = json.load(file)
+        file.close()
     preprocessed_query = preprocess_string(query)
     final_idf = 0
     for term in preprocessed_query:
@@ -108,13 +104,17 @@ def idf_page_title(query, n):
     return final_idf
 
 
-def idf_section_title(query, n):
-    ''' Takes the query and returns the sum of the IDF scores of the words in the section titles'''
-    ''' ( IDF_t = log ( N / df_t ) 
-        Here N is the number of documents and df_t the number of documents containing word t 
-        This is then summed for all terms in the query '''
-    ''' Note: this is also dependent on data about all documents (/tables). 
-    We still need to get this here somehow '''
+def idf_section_title(query, n, path_name):
+    """
+    Takes the query and returns the sum of the IDF scores of the words in the section titles
+    :param query:
+    :param n:
+    :param path_name:
+    :return:
+    """
+    with open(path_name + '/dictionaries/dict_section_titles') as file:
+        dict_section_titles = json.load(file)
+        file.close()
     preprocessed_query = preprocess_string(query)
     final_idf = 0
     for term in preprocessed_query:
@@ -123,13 +123,17 @@ def idf_section_title(query, n):
     return final_idf
 
 
-def idf_table_caption(query, n):
-    ''' Takes the query and returns the sum of the IDF scores of the words in the table captions '''
-    ''' ( IDF_t = log ( N / df_t ) 
-        Here N is the number of documents and df_t the number of documents containing word t 
-        This is then summed for all terms in the query '''
-    ''' Note: this is also dependent on data about all documents (/tables). 
-    We still need to get this here somehow '''
+def idf_table_caption(query, n, path_name):
+    """
+    Takes the query and returns the sum of the IDF scores of the words in the table captions
+    :param query:
+    :param n:
+    :param path_name:
+    :return:
+    """
+    with open(path_name + '/dictionaries/dict_captions.json') as file:
+        dict_captions = json.load(file)
+        file.close()
     preprocessed_query = preprocess_string(query)
     final_idf = 0
     for term in preprocessed_query:
@@ -138,13 +142,17 @@ def idf_table_caption(query, n):
     return final_idf
 
 
-def idf_table_heading(query, n):
-    ''' Takes the query and returns the sum of the IDF scores of the words in the table headings '''
-    ''' ( IDF_t = log ( N / df_t ) 
-        Here N is the number of documents and df_t the number of documents containing word t 
-        This is then summed for all terms in the query '''
-    ''' Note: this is also dependent on data about all documents (/tables). 
-    We still need to get this here somehow '''
+def idf_table_heading(query, n, path_name):
+    """
+    Takes the query and returns the sum of the IDF scores of the words in the table headings
+    :param query:
+    :param n:
+    :param path_name:
+    :return:
+    """
+    with open(path_name + '/dictionaries/dict_headers.json') as file:
+        dict_headers = json.load(file)
+        file.close()
     preprocessed_query = preprocess_string(query)
     final_idf = 0
     for term in preprocessed_query:
@@ -153,13 +161,17 @@ def idf_table_heading(query, n):
     return final_idf
 
 
-def idf_table_body(query, n):
-    ''' Takes the query and returns the sum of the IDF scores of the words in the table bodies '''
-    ''' ( IDF_t = log ( N / df_t ) 
-        Here N is the number of documents and df_t the number of documents containing word t 
-        This is then summed for all terms in the query '''
-    ''' Note: this is also dependent on data about all documents (/tables). 
-    We still need to get this here somehow '''
+def idf_table_body(query, n, path_name):
+    """
+    Takes the query and returns the sum of the IDF scores of the words in the table bodies
+    :param query:
+    :param n:
+    :param path_name:
+    :return:
+    """
+    with open(path_name + '/dictionaries/dict_data.json') as file:
+        dict_data = json.load(file)
+        file.close()
     preprocessed_query = preprocess_string(query)
     final_idf = 0
     for term in preprocessed_query:
@@ -168,13 +180,30 @@ def idf_table_body(query, n):
     return final_idf
 
 
-def idf_catch_all(query, n):
-    ''' Takes the query and returns the sum of the IDF scores of the words in the all text of the tables '''
-    ''' ( IDF_t = log ( N / df_t ) 
-        Here N is the number of documents and df_t the number of documents containing word t 
-        This is then summed for all terms in the query '''
-    ''' Note: this is also dependent on data about all documents (/tables). 
-    We still need to get this here somehow '''
+def idf_catch_all(query, n, path_name):
+    """
+    Takes the query and returns the sum of the IDF scores of the words in the all text of the tables
+    :param query:
+    :param n:
+    :param path_name:
+    :return:
+    """
+    with open(path_name + '/dictionaries/dict_page_titles.json') as file:
+        dict_page_titles = json.load(file)
+        file.close()
+    with open(path_name + '/dictionaries/dict_section_titles') as file:
+        dict_section_titles = json.load(file)
+        file.close()
+    with open(path_name + '/dictionaries/dict_captions.json') as file:
+        dict_captions = json.load(file)
+        file.close()
+    with open(path_name + '/dictionaries/dict_headers.json') as file:
+        dict_headers = json.load(file)
+        file.close()
+    with open(path_name + '/dictionaries/dict_data.json') as file:
+        dict_data = json.load(file)
+        file.close()
+
     preprocessed_query = preprocess_string(query)
     final_idf = 0
     for term in preprocessed_query:
@@ -197,7 +226,7 @@ def compute_idf_t(n, dft):
 
 # Table featuresCreation
 
-def number_of_rows(table):
+def number_of_rows(table, _):
     """
     Takes the table and returns the number of rows
     :param table:
@@ -206,7 +235,7 @@ def number_of_rows(table):
     return table['numDataRows']
 
 
-def number_of_columns(table):
+def number_of_columns(table, _):
     """
     Takes the table and return the number of columns
     :param table:
@@ -215,7 +244,7 @@ def number_of_columns(table):
     return table['numCols']
 
 
-def number_of_null(table):
+def number_of_null(table, _):
     """
     Takes the table and returns the number of empty cells
     :param table:
@@ -229,7 +258,7 @@ def number_of_null(table):
     return nulls
 
 
-def number_of_in_links(table):
+def number_of_in_links(table, _):
     """
     Takes the table and returns the number of inlinks to the page embedding the table
     :param table:
@@ -239,7 +268,7 @@ def number_of_in_links(table):
     return len(page.backlinks)
 
 
-def number_of_out_links(table):
+def number_of_out_links(table, _):
     """
     Takes the table and returns the number of outlinks to the page embedding the table
     :param table:
@@ -249,7 +278,7 @@ def number_of_out_links(table):
     return len(page.links)
 
 
-def table_importance(table):
+def table_importance(table, _):
     """
     Takes the table and returns the inverse of the number of tables on the page
     :param table:
@@ -263,7 +292,7 @@ def table_importance(table):
     return 1.0 / n_wiki_tables
 
 
-def page_fraction(table):
+def page_fraction(table, _):
     """
     Takes the table and returns the inverse of the number of tables on the page
     :param table:
@@ -284,36 +313,50 @@ def page_fraction(table):
     return table_size / n_words
 
 
-def pmi(table, n):
+def pmi(table, n, path_name):
     """
     Takes the table and returns the ACSDb-based schema coherency score
     :param table:
-    :param full_data_table:
+    :param n:
+    :param path_name:
     :return:
     """
+    with open(path_name + '/dictionaries/dict_headers.json') as file:
+        dict_headers = json.load(file)
+        file.close()
+
     average_pmi = 0
     counter = 0
     preprocessed_headers = list(map(lambda x: ' '.join(preprocess_string(x)), table['title']))
     for i in range(len(preprocessed_headers) - 1):
         for j in range(i + 1, len(preprocessed_headers)):
             counter += 1
-            average_pmi += compute_pmi(preprocessed_headers[i], preprocessed_headers[j], n, len(preprocessed_headers))
+            average_pmi += compute_pmi(preprocessed_headers[i], preprocessed_headers[j], n, dict_headers)
     return average_pmi / counter
 
 
-def compute_pmi(term_a, term_b, n, n_terms):
-
+def compute_pmi(term_a, term_b, n, dictionary):
+    """
+    Compute the Pointwise Mutual Information between term a, and term b
+    :param term_a:
+    :param term_b:
+    :param n:
+    :param dictionary:
+    :return:
+    """
     p_a = 0
     p_b = 0
     tables_a = []
     tables_b = []
-    if term_a in dict_headers:
-        tables_a = dict_headers[term_a]
+    if term_a in dictionary:
+        tables_a = dictionary[term_a]
         p_a = len(tables_a) / n
-    if term_b in dict_headers:
-        tables_b = dict_headers[term_b]
+    if term_b in dictionary:
+        tables_b = dictionary[term_b]
         p_b = len(tables_b) / n
-    intersection_tables = set(tables_a).intersection(tables_b)
+    p_a_b = len(set(tables_a).intersection(tables_b)) / n
+    return math.log(p_a_b / (p_a * p_b))
+
 
 def average_page_view(table):
     """
@@ -341,7 +384,7 @@ def term_frequency_query_in_left_column(query, table):
     :return:
     """
     tokenized_query = word_tokenize(query.lower())
-    tokenized_first_column = list(map(lambda v: word_tokenize(v.lower().replace('|', ' ')), table['data'][:][0]))
+    tokenized_first_column = list(map(lambda x: preprocess_string(x), table['data'][:][0]))
     number_found = 0
     for query_token in tokenized_query:
         if query_token in tokenized_first_column:
@@ -357,7 +400,7 @@ def term_frequency_query_in_second_column(query, table):
     :return:
     """
     tokenized_query = word_tokenize(query.lower())
-    tokenized_second_column = list(map(lambda v: word_tokenize(v.lower().replace('|', ' ')), table['data'][:][1]))
+    tokenized_second_column = list(map(lambda x: preprocess_string(x), table['data'][:][1]))
     number_found = 0
     for query_token in tokenized_query:
         if query_token in tokenized_second_column:
@@ -375,7 +418,7 @@ def term_frequency_query_in_table_body(query, table):
     tokenized_query = word_tokenize(query.lower())
     number_found = 0
     for row in table['data']:
-        data_row = list(map(lambda v: word_tokenize(v.lower().replace('|', ' ')), row))
+        data_row = list(map(lambda x: preprocess_string(x), row))
         for cell in data_row:
             print("cell ", cell)
             for query_token in tokenized_query:
@@ -391,8 +434,8 @@ def ratio_query_terms_in_page_title(query, table):
     :param table:
     :return:
     """
-    tokenized_query = word_tokenize(query.lower())
-    tokenized_page_title = word_tokenize(table['pgTitle'].lower())
+    tokenized_query = preprocess_string(query)
+    tokenized_page_title = preprocess_string(table['pgTitle'])
     number_found = 0
     for query_token in tokenized_query:
         if query_token in tokenized_page_title:
@@ -408,8 +451,8 @@ def ratio_query_terms_in_table_title(query, table):
     :param table:
     :return:
     """
-    tokenized_query = word_tokenize(query.lower())
-    tokenized_table_title = word_tokenize(table['caption'].lower())
+    tokenized_query = preprocess_string(query)
+    tokenized_table_title = preprocess_string(table['caption'])
     number_found = 0
     for query_token in tokenized_query:
         if query_token in tokenized_table_title:
