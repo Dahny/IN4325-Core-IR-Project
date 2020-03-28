@@ -200,3 +200,7 @@ def unique_query_execution(query_set, function, *args):
             current_input = entry
         result[i] = current_output
     return pd.Series(result)
+
+
+def wikipedia_entity(s):
+    return s.split("|")[0].replace('_', ' ')[1:]
