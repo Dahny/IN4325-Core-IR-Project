@@ -2,7 +2,7 @@ from nltk import word_tokenize
 import re
 import string
 import json, os
-from utils import preprocess_string
+from utils import preprocess_string, write_dictionary_to_file
 
 def create_dictionaries_from_wiki_tables(input_file, output_folder):
     dict_headers = {}
@@ -37,12 +37,6 @@ def create_dictionaries_from_wiki_tables(input_file, output_folder):
     write_dictionary_to_file(dict_section_titles, output_folder + '/words_section_titles.json')
     write_dictionary_to_file(dict_captions, output_folder + '/words_captions.json')
     write_dictionary_to_file(dict_data, output_folder + '/words_data.json')
-
-
-def write_dictionary_to_file(dictionary, file_name):
-    with open(file_name, 'w') as f:
-        json.dump(dictionary, f)
-        f.close()
 
 
 def add_to_dict(dictionary, word, table_id):

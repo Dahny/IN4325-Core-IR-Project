@@ -2,7 +2,7 @@ from smart_open import open
 import numpy as np
 import json
 from tqdm import tqdm
-
+from utils import write_dictionary_to_file
 
 base_url = "http://data.dws.informatik.uni-mannheim.de/rdf2vec/models/DBpedia/"
 url = base_url + "2016-04/GlobalVectors/1_uniform/DBpediaVecotrs200_20Shuffle.txt"
@@ -21,5 +21,6 @@ for line in tqdm(open(url)):
         vecs[entity_name] = np.fromstring(vector, sep=" ")
 
 
+write_dictionary_to_file(vecs, '../dictionaries/rdf2vec.json')
 with open('rdf2vec.json', 'w') as json_file:
     json.dump(vecs, json_file)

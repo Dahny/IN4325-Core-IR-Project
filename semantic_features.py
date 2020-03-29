@@ -18,6 +18,8 @@ import os
 import time
 import requests
 
+from preprocessing.utils import list_to_ngrams
+
 
 def compute_semantic_features(data_table, query_col='query', table_col='raw_table_data'):
     ''' Compute semantic features introduced by the paper '''
@@ -87,10 +89,7 @@ def entities_from_words(words, use_n_grams=True, k=10):
     ''' Return all words in the data that are entities '''
     # print("words " + str(len(words)))
     if use_n_grams:
-        words_incl_n_grams = []
-        for N in range(1, len(words) + 1):
-            words_incl_n_grams += [' '.join(words[i:i+N]) for i in range(len(words)-N+1)]
-        words = words_incl_n_grams
+        words = list_to_ngrams(words)
             
     result = [i for i in words if check_for_entity_in_dbpedia(i)]
     # print("results " + str(len(result)))
