@@ -18,8 +18,8 @@ def collect_entity_information(table_file, query_file, output_folder):
     query_entities, query_to_entities =  find_all_entities_in_queries(query_file)
     entities = list(set(table_entities + query_entities))
 
-    write_dictionary_to_file(entities_to_information, output_folder + '/table_to_entities.json')
-    write_dictionary_to_file(entities_to_information, output_folder + '/query_to_entities.json')
+    write_dictionary_to_file(table_to_entities, output_folder + '/table_to_entities.json')
+    write_dictionary_to_file(query_to_entities, output_folder + '/query_to_entities.json')
 
     entities_to_information = {}
 
