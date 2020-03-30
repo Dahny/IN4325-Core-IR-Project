@@ -18,7 +18,7 @@ def collect_entity_information(table_file, query_file, output_folder, cont=False
 
     table_entities, table_to_entities = find_all_entities_in_tables(table_file)
     query_entities, query_to_entities =  find_all_entities_in_queries(query_file)
-    entities = list(set(table_entities + query_entities))
+    entities = sorted(list(set(table_entities + query_entities)))
 
     write_dictionary_to_file(table_to_entities, output_folder + '/table_to_entities.json')
     write_dictionary_to_file(query_to_entities, output_folder + '/query_to_entities.json')
@@ -29,7 +29,7 @@ def collect_entity_information(table_file, query_file, output_folder, cont=False
     else:
         entities_to_information = {}
 
-    for i, entity in tqdm(enumerate(entities)):
+    for i, entity in tqdm(enumerate(entities), total=len(entities)):
         if entity not in entities_to_information.keys():
             page = wiki.page(entity)
             if page.exists():
@@ -64,7 +64,7 @@ def find_all_entities_in_tables(table_file):
                 for row in table['data']:
                     concat_core_column_string += ' ' + row[core_column]
                 table_to_entities[table_id] += extract_entities_from_wikipedia_string(concat_core_column_string)
-            table_to_entities[table_id] = list(set(table_to_entities[table_id]))
+            table_to_entities[table_id] = sorted(list(set(table_to_entities[table_id])))
             entities += table_to_entities[table_id]
     return entities, table_to_entities
 
@@ -82,7 +82,7 @@ def find_all_entities_in_queries(query_file):
 
     for k, v in query_to_ngrams.items():
         query_entities = [check_if_entity(i) for i in v if check_if_entity(i) is not None]
-        query_to_entities[k] = list(set(query_entities))
+        query_to_entities[k] = sorted(list(set(query_entities)))
         entities += query_entities
 
     return entities, query_to_entities
@@ -141,4 +141,4 @@ if __name__ == '__main__':
     query_file = '../data/queries.txt'
     output_folder = '../dictionaries'
 
-    collect_entity_information(table_file, query_file, output_folder)
+    collect_entity_information(table_file, query_file, output_folder, cont=True)
