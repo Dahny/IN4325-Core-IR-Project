@@ -3,7 +3,6 @@ import requests
 import re
 
 import wikipediaapi
-from tqdm import tqdm
 import pageviewapi
 from bs4 import BeautifulSoup
 
@@ -29,7 +28,7 @@ def collect_entity_information(table_file, query_file, output_folder, cont=False
     else:
         entities_to_information = {}
 
-    for i, entity in tqdm(enumerate(entities), total=len(entities)):
+    for i, entity in enumerate(entities):
         if entity not in entities_to_information.keys():
             page = wiki.page(entity)
             if page.exists():
@@ -41,8 +40,9 @@ def collect_entity_information(table_file, query_file, output_folder, cont=False
                 new_entity['nr_of_tables'], new_entity['nr_of_words'] = nr_of_tables_and_words(page)
                 entities_to_information[entity] = new_entity
         else:
-            print(f'Entity {entity} already existed in json.')
-        if i % 10 == 0:
+            print(f'Entity {i} - {entity} already existed in json.')
+        if i % 20 == 0:
+            print(f'---- Wrote {i} / {len(entities)} to file.')
             write_dictionary_to_file(entities_to_information, entity_information_file)
     
     write_dictionary_to_file(entities_to_information, entity_information_file)
