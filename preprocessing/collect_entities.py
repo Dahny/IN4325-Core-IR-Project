@@ -14,6 +14,8 @@ wiki = wikipediaapi.Wikipedia('en')
 
 
 def collect_entity_information(table_file, query_file, output_folder, cont=False):
+    entity_information_file = output_folder + '/entities_to_information.json'
+
     table_entities, table_to_entities = find_all_entities_in_tables(table_file)
     query_entities, query_to_entities =  find_all_entities_in_queries(query_file)
     entities = list(set(table_entities + query_entities))
@@ -21,20 +23,29 @@ def collect_entity_information(table_file, query_file, output_folder, cont=False
     write_dictionary_to_file(table_to_entities, output_folder + '/table_to_entities.json')
     write_dictionary_to_file(query_to_entities, output_folder + '/query_to_entities.json')
 
-    entities_to_information = {}
+    if cont:
+        with open(entity_information_file, 'r') as f:
+            entities_to_information = json.loads(f.read())
+    else:
+        entities_to_information = {}
 
-    for entity in tqdm(entities):
-        page = wiki.page(entity)
-        if page.exists():
-            new_entity = {}
-            new_entity['inlinks'] = list(page.backlinks.keys())
-            new_entity['outlinks'] = list(page.links.keys())
-            new_entity['categories'] = list(page.categories.keys())
-            new_entity['page_views'] = average_page_view(entity)
-            new_entity['nr_of_tables'], new_entity['nr_of_words'] = nr_of_tables_and_words(page)
-            entities_to_information[entity] = new_entity
+    for i, entity in tqdm(enumerate(entities)):
+        if entity not in entities_to_information.keys():
+            page = wiki.page(entity)
+            if page.exists():
+                new_entity = {}
+                new_entity['inlinks'] = list(page.backlinks.keys())
+                new_entity['outlinks'] = list(page.links.keys())
+                new_entity['categories'] = list(page.categories.keys())
+                new_entity['page_views'] = average_page_view(entity)
+                new_entity['nr_of_tables'], new_entity['nr_of_words'] = nr_of_tables_and_words(page)
+                entities_to_information[entity] = new_entity
+        else:
+            print(f'Entity {entity} already existed in json.')
+        if i % 10 == 0:
+            write_dictionary_to_file(entities_to_information, entity_information_file)
     
-    write_dictionary_to_file(entities_to_information, output_folder + '/entities_to_information.json')
+    write_dictionary_to_file(entities_to_information, entity_information_file)
 
 
 
@@ -45,7 +56,7 @@ def find_all_entities_in_tables(table_file):
         wiki_tables = json.load(json_file)
         for table_id, table in wiki_tables.items():
             table_to_entities[table_id] = []
-            table_to_entities[table_id] += extract_entities_from_wikipedia_string(table['pgTitle'])
+            table_to_entities[table_id].append(table['pgTitle'].replace(' ', '_'))
             table_to_entities[table_id] += extract_entities_from_wikipedia_string(table['caption'])
             if len(table['data']) > 0:
                 core_column = find_core_column(table['data'])
