@@ -33,8 +33,8 @@ def find_core_column(data):
         for i, cell in enumerate(row):
             if len(extract_entities_from_wikipedia_string(cell)) > 0:
                 entities_in_column[i] += 1
-        return entities_in_column.index(max(entities_in_column))
-    
+    return entities_in_column.index(max(entities_in_column))
+
 
 def list_to_ngrams(words):
     words_incl_n_grams = []
