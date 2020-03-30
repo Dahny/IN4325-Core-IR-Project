@@ -18,22 +18,24 @@ import pageviewapi
 wiki = wikipediaapi.Wikipedia('en', extract_format=wikipediaapi.ExtractFormat.HTML)
 
 # Load lookup dictionaries
-with open('dictionaries/words_page_titles.json') as file:
-    dict_page_titles = json.load(file)
-    file.close()
-with open('dictionaries/words_section_titles.json') as file:
-    dict_section_titles = json.load(file)
-    file.close()
-with open('dictionaries/words_captions.json') as file:
-    dict_captions = json.load(file)
-    file.close()
-with open('dictionaries/words_headers.json') as file:
-    dict_headers = json.load(file)
-    file.close()
-with open('dictionaries/words_data.json') as file:
-    dict_data = json.load(file)
-    file.close()
-
+with open('dictionaries/words_page_titles.json') as f:
+    dict_page_titles = json.load(f)
+    f.close()
+with open('dictionaries/words_section_titles.json') as f:
+    dict_section_titles = json.load(f)
+    f.close()
+with open('dictionaries/words_captions.json') as f:
+    dict_captions = json.load(f)
+    f.close()
+with open('dictionaries/words_headers.json') as f:
+    dict_headers = json.load(f)
+    f.close()
+with open('dictionaries/words_data.json') as f:
+    dict_data = json.load(f)
+    f.close()
+with open('dictionaries/entities_to_information.json') as f:
+    dict_information = json.load(f)
+    f.close()
 
 def compute_baseline_features(data_table, query_col='query', table_col='raw_table_data'):
     """

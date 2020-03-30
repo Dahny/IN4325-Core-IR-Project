@@ -11,6 +11,23 @@ def write_dictionary_to_file(dictionary, file_name):
         f.close()
 
 
+def to_csv_line(d, fields):
+    line = ''
+    for field in fields:
+        line += str(d[field]) + '##;;##'
+    return line[:-1] + '\n'
+
+
+def from_csv_line(line, fields):
+    splitted = line.split('##;;##')
+
+    assert len(splitted) == len(fields)
+    result = {}
+    for i in range(len(splitted)):
+        result[fields[i]] = splitted[i].strip().strip('##;;##')
+    return result
+
+
 def preprocess_string(s):
     pre_s = re.sub('[\(\[].*?[\|\)]', '', s.lower())
     pre_s = pre_s.translate(str.maketrans('', '', string.punctuation))
