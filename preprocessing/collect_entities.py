@@ -13,7 +13,7 @@ from utils import preprocess_string, extract_entities_from_wikipedia_string, fin
 wiki = wikipediaapi.Wikipedia('en')
 
 
-def collect_entity_information(table_file, query_file, output_folder):
+def collect_entity_information(table_file, query_file, output_folder, cont=False):
     table_entities, table_to_entities = find_all_entities_in_tables(table_file)
     query_entities, query_to_entities =  find_all_entities_in_queries(query_file)
     entities = list(set(table_entities + query_entities))
@@ -70,7 +70,7 @@ def find_all_entities_in_queries(query_file):
     entities = []
 
     for k, v in query_to_ngrams.items():
-        query_entities = [i for i in v if check_if_entity(i)]
+        query_entities = [check_if_entity(i) for i in v if check_if_entity(i) is not None]
         query_to_entities[k] = list(set(query_entities))
         entities += query_entities
 
@@ -79,7 +79,14 @@ def find_all_entities_in_queries(query_file):
 
 def check_if_entity(s):
     page = wiki.page(s)
-    return page.exists()
+    if page.exists():
+        res = page.fullurl.split('/')[-1]
+        if res.lower().replace('_', ' ') == s:
+            return res
+        else:
+            return
+    else:
+        return
 
 
 def average_page_view(entity):
