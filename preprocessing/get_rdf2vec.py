@@ -37,7 +37,7 @@ for line in open(url):
         vector = preprocessed[1].strip()
         if entity_name.lower() in entities_list:
             print(f'---- Found entity {entity_name}')
-            vecs[entity_name] = np.fromstring(vector, sep=" ")
+            vecs[entity_name] = [float(x) for x in vector.split(' ')]
     except:
         print('Warning, no entity found.')
         warnings.append(line)

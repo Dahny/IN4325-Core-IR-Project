@@ -38,7 +38,8 @@ def extract_entities_from_wikipedia_string(s):
     entities = re.findall('(?<=\[).*?(?=\])',s)
     result = []
     for entity in entities:
-        result.append(entity.split('|')[0])
+        if '|' in entity:
+            result.append(entity.split('|')[0])
     return result
 
 

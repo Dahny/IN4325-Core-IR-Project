@@ -1,6 +1,7 @@
 import json
 import requests
 import re
+import string
 
 import wikipediaapi
 import pageviewapi
@@ -37,7 +38,7 @@ def collect_entity_information(table_file, query_file, output_folder, cont=False
         for k, v in query_entities.items():
             entities_list += v
 
-        entities = sorted(list(map(lambda x: x.lower(), set(entities_list))))
+        entities = sorted(list(set(entities_list)))
     else:
         table_entities, table_to_entities = find_all_entities_in_tables(table_file)
         query_entities, query_to_entities =  find_all_entities_in_queries(query_file)
@@ -50,6 +51,7 @@ def collect_entity_information(table_file, query_file, output_folder, cont=False
     for i, entity in enumerate(entities):
         if entity not in entities_existing:
             page = wiki.page(entity)
+
             if page.exists():
                 new_entity = {}
                 new_entity[dict_fields[0]] = entity
@@ -60,6 +62,8 @@ def collect_entity_information(table_file, query_file, output_folder, cont=False
                 new_entity[dict_fields[5]], new_entity[dict_fields[6]] = nr_of_tables_and_words(page)
                 with open(entity_information_file, 'a') as f:
                     f.write(to_csv_line(new_entity, dict_fields))
+            else:
+                print(f'Page {entity} does not exist')
         else:
             print(f'Entity {i} - {entity} already existed.')
         if i % 200 == 0:

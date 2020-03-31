@@ -35,7 +35,7 @@ def compute_semantic_features(data_table, query_col='query', table_col='raw_tabl
 
     ## See 3.2 in the paper for the following section
     start_time = time.time()
-    wv = load_word2vec('word2vec.kv')
+    wv = load_word2vec('dictionaries/word2vec.kv')
     print(f'---------- TOOK {time.time() - start_time} SECONDS TO LOAD WORD2VEC ----------')
     q_word_embeddings = unique_query_execution(words_in_query, word_embeddings, wv)
     t_word_embeddings = words_in_table.apply(lambda x: word_embeddings(x, wv))
