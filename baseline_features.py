@@ -37,6 +37,7 @@ with open('dictionaries/entities_to_information.json') as f:
     dict_information = json.load(f)
     f.close()
 
+
 def compute_baseline_features(data_table, query_col='query', table_col='raw_table_data'):
     """
     Compute all features regarded as baseline features in the paper
@@ -203,6 +204,12 @@ def idf_catch_all(query, n):
 
 
 def compute_idf_t(n, dft):
+    """
+
+    :param n:
+    :param dft:
+    :return:
+    """
     return math.log(n / dft)
 
 
@@ -302,10 +309,6 @@ def pmi(table, n):
     :param n:
     :return:
     """
-    with open(main_path_name + '/dictionaries/dict_headers.json') as file:
-        dict_headers = json.load(file)
-        file.close()
-
     average_pmi = 0
     counter = 0
     preprocessed_headers = list(map(lambda x: ' '.join(preprocess_string(x)), table['title']))

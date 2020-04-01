@@ -3,6 +3,7 @@ import string
 from nltk import word_tokenize
 import json
 
+
 def write_dictionary_to_file(dictionary, file_name):
     with open(file_name, 'w') as f:
         output = json.dumps(dictionary, indent=4)
