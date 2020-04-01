@@ -2,6 +2,7 @@ import re
 import string
 from nltk import word_tokenize
 import json
+import ast
 
 
 def write_dictionary_to_file(dictionary, file_name):
@@ -12,20 +13,35 @@ def write_dictionary_to_file(dictionary, file_name):
         f.close()
 
 
-def to_csv_line(d, fields):
+def to_csv_line(d, fields=['name', 'inlinks', 'outlinks', 'categories', 'page_views', 'nr_of_tables', 'nr_of_words']):
     line = ''
     for field in fields:
         line += str(d[field]) + '##;;##'
     return line[:-1] + '\n'
 
 
-def from_csv_line(line, fields):
+def from_csv_line(line, fields=['name', 'inlinks', 'outlinks', 'categories', 'page_views', 'nr_of_tables', 'nr_of_words']):
     splitted = line.split('##;;##')
-
     assert len(splitted) == len(fields)
     result = {}
     for i in range(len(splitted)):
-        result[fields[i]] = splitted[i].strip().strip('##;;##')
+        key = fields[i]
+        value = splitted[i].strip().strip('##;;##')
+        if key == 'inlinks' or key == 'outlinks' or key == 'categories':
+            new_value = re.split("""', '|", "|', "|", '""", value)
+            new_value = [re.sub("""\['|\["|"\]|'\]|\[|\]""", '', x.strip().replace(' ', '_')) for x in new_value]
+            result[key] = new_value
+        else:
+            result[key] = value
+    return result
+
+
+def get_entity_to_information_dict(path, fields=['name', 'inlinks', 'outlinks', 'categories', 'page_views', 'nr_of_tables', 'nr_of_words']):
+    result = {}
+    with open(path, 'r') as f:
+        for line in f.readlines():
+            d = from_csv_line(line, fields)
+            result[d['name']] = d
     return result
 
 
