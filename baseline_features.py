@@ -12,7 +12,7 @@ import json
 import math
 import wikipediaapi
 from nltk import word_tokenize
-from preprocessing.utils import preprocess_string
+from preprocessing.utils import preprocess_string, get_entity_to_information_dict
 import pageviewapi
 
 wiki = wikipediaapi.Wikipedia('en', extract_format=wikipediaapi.ExtractFormat.HTML)
@@ -33,9 +33,7 @@ with open('dictionaries/words_headers.json') as f:
 with open('dictionaries/words_data.json') as f:
     dict_data = json.load(f)
     f.close()
-with open('dictionaries/entities_to_information.json') as f:
-    dict_information = json.load(f)
-    f.close()
+dict_information = get_entity_to_information_dict('dictionaries/entities_to_information.csv') 
 
 def compute_baseline_features(data_table, query_col='query', table_col='raw_table_data'):
     """
