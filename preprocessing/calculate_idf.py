@@ -24,7 +24,8 @@ def create_dictionaries_from_wiki_tables(input_file, output_folder):
             preprocessed_caption = preprocess_string(wiki_table['caption'])
             list(map(lambda x: add_to_dict(dict_captions, str(x), table_id), preprocessed_caption))
 
-            preprocessed_headers = list(map(lambda x: ' '.join(preprocess_string(x)), wiki_table['title']))
+            # preprocessed_headers = list(map(lambda x: ' '.join(preprocess_string(x)), wiki_table['title']))
+            preprocessed_headers = [x for title in wiki_table['title'] for x in preprocess_string(title)]
             list(map(lambda x: add_to_dict(dict_headers, str(x), table_id), preprocessed_headers))
 
             preprocessed_data = list(map(lambda x: list(map(lambda y: preprocess_string(y), x)), wiki_table['data']))

@@ -45,6 +45,11 @@ def get_entity_to_information_dict(path, fields=['name', 'inlinks', 'outlinks', 
     return result
 
 
+def read_json(path):
+    with open(path, 'r') as f:
+        return json.loads(f.read())
+
+
 def preprocess_string(s):
     pre_s = re.sub('[\(\[].*?[\|\)]', '', s.lower())
     pre_s = pre_s.translate(str.maketrans('', '', string.punctuation))
