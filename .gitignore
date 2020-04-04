@@ -10,3 +10,5 @@
 /dictionaries/entities_to_information.csv 
 .DS_Store
 *.zip
+
+/raw_data_tables/

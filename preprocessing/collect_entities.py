@@ -3,12 +3,13 @@ import requests
 import re
 import string
 
+import wikipedia
 import wikipediaapi
 import pageviewapi
 from bs4 import BeautifulSoup
 
-from utils import preprocess_string, extract_entities_from_wikipedia_string, find_core_column
-from utils import list_to_ngrams, write_dictionary_to_file, to_csv_line, from_csv_line
+from preprocessing.utils import preprocess_string, extract_entities_from_wikipedia_string, find_core_column
+from preprocessing.utils import list_to_ngrams, write_dictionary_to_file, to_csv_line, from_csv_line
 
 
 wiki = wikipediaapi.Wikipedia('en')
@@ -41,12 +42,11 @@ def collect_entity_information(table_file, query_file, output_folder, cont=False
         entities = sorted(list(set(entities_list)))
     else:
         table_entities, table_to_entities = find_all_entities_in_tables(table_file)
-        query_entities, query_to_entities =  find_all_entities_in_queries(query_file)
+        query_entities, query_to_entities = find_all_entities_in_queries(query_file)
         entities = sorted(list(set(table_entities + query_entities)))
 
         write_dictionary_to_file(table_to_entities, output_folder + '/table_to_entities.json')
         write_dictionary_to_file(query_to_entities, output_folder + '/query_to_entities.json')
-
 
     for i, entity in enumerate(entities):
         if entity not in entities_existing:
@@ -159,9 +159,30 @@ def nr_of_tables_and_words(page):
     return n_wiki_tables, n_words
 
 
+def collect_wikipages_queries(query_file, output_folder, cont=False):
+    max_result = 50
+    wikipages = {}
+    with open(query_file) as f:
+
+        for line in f:
+            splitted = line.split(' ')
+            query = ' '.join(splitted[1:]).replace('\n', '')
+            wikiterm = wikipedia.search(query)
+            pages = []
+            for idx, term in enumerate(wikiterm[0:max_result]):
+                try:
+                    wikipage = wikipedia.page(term).title
+                except (wikipedia.exceptions.DisambiguationError, wikipedia.exceptions.PageError):
+                    print("A DisambiguationError or a PageError occurred")
+                pages.append(wikipage)
+            wikipages[query] = pages
+    write_dictionary_to_file(wikipages, output_folder + '/wikipages_per_query.json')
+
+
 if __name__ == '__main__':
     table_file = '../data/raw_table_data.json'
     query_file = '../data/queries.txt'
     output_folder = '../dictionaries'
 
-    collect_entity_information(table_file, query_file, output_folder, cont=True)
+    # collect_entity_information(table_file, query_file, output_folder, cont=True)
+    collect_wikipages_queries(query_file, output_folder, cont=True)

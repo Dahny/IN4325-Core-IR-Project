@@ -52,7 +52,7 @@ def preprocess_string(s):
 
 
 def extract_entities_from_wikipedia_string(s):
-    entities = re.findall('(?<=\[).*?(?=\])',s)
+    entities = re.findall('(?<=\[).*?(?=\])', s)
     result = []
     for entity in entities:
         if '|' in entity:
@@ -63,9 +63,8 @@ def extract_entities_from_wikipedia_string(s):
 def find_core_column(data):
     if len(data) is 0:
         return
-    number_of_colums = len(data[0])
-    number_of_rows = len(data)
-    entities_in_column = [0] * number_of_colums
+    number_of_columns = len(data[0])
+    entities_in_column = [0] * number_of_columns
     for row in data:
         for i, cell in enumerate(row):
             if len(extract_entities_from_wikipedia_string(cell)) > 0:
