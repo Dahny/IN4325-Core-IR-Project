@@ -28,7 +28,10 @@ with open('dictionaries/words_data.json') as f:
 with open('dictionaries/wikipages_per_query.json') as f:
     dict_query_wikipages = json.load(f)
     f.close()
+
+print('----- START READING INFORMATION FILE -----')
 dict_information = get_entity_to_information_dict('dictionaries/entities_to_information.csv')
+print('----- FINISHED READING INFORMATION FILE -----')
 
 # Total number of documents
 n_documents = 2932
