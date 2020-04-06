@@ -6,6 +6,7 @@
 /__pycache__
 /preprocessing/__pycache__
 /dictionaries/rdf2vec.json
+/dictionaries/link_indices.json
 /dictionaries/word2vec.*
 /dictionaries/entities_to_information.csv 
 .DS_Store
