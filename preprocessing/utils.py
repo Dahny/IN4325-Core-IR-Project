@@ -16,20 +16,24 @@ def write_dictionary_to_file(dictionary, file_name):
 
 def read_one_hot_encoding(path):
     d = read_json(path)
-    max_index = 0
-    for k, v in d.items():
-        maximum_v = max(v)
-        if maximum_v > max_index:
-            max_index = max(v)
-    
     result = {}
     for k, v in d.items():
-        new = np.zeros(max_index + 1)
-        for value in v:
-            new[value] = 1
-        result[k.lower()] = new
-    
+        result[k.lower()] = v
     return result
+    # max_index = 0
+    # for k, v in d.items():
+    #     maximum_v = max(v)
+    #     if maximum_v > max_index:
+    #         max_index = max(v)
+    
+    # result = {}
+    # for k, v in d.items():
+    #     new = np.zeros(max_index + 1)
+    #     for value in v:
+    #         new[value] = 1
+    #     result[k.lower()] = new
+    
+    # return result
 
 
 def to_csv_line(d, fields=['name', 'inlinks', 'outlinks', 'categories', 'page_views', 'nr_of_tables', 'nr_of_words']):

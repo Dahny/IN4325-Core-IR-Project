@@ -85,20 +85,29 @@ def compute_semantic_features(data_table, query_col='query', table_col='raw_tabl
 
     ## See 3.3 in the paper for the following section
     # I believe no prefix represents word embeddings, 're' is graph embeddings, 'c' bag of category and 'e' bag of entity
-    to_compare = [
-        ['', pd.concat([q_word_embeddings, t_word_embeddings], axis=1)], 
-        ['re', pd.concat([q_entity_embeddings, t_entity_embeddings], axis=1)],
-        ['c', pd.concat([q_bag_of_categories, t_bag_of_categories], axis=1)],
-        ['e', pd.concat([q_bag_of_entities, t_bag_of_entities], axis=1)]
-    ]
-    for i in to_compare:
-        if i[0] == '':
-            # TODO: Change this to weighed TF_IDF version (this is only for word_embeddings as per prefix)
-            data_table[i[0] + 'sim'] = i[1].apply(lambda x: early_fusion(x.iloc[0], x.iloc[1]), axis=1)
-        else:
-            data_table[i[0] + 'sim'] = i[1].apply(lambda x: early_fusion(x.iloc[0], x.iloc[1]), axis=1)
-        data_table[i[0] + 'avg'], data_table[i[0] + 'max'], data_table[i[0] + 'sum'] = \
-            zip(*i[1].apply(lambda x: late_fusion(x.iloc[0], x.iloc[1]), axis=1))
+    data_table['sim'] = pd.concat([q_word_embeddings, t_word_embeddings], axis=1).apply(
+        lambda x: early_fusion(x.iloc[0], x.iloc[1]), axis=1)
+    data_table['avg'], data_table['max'], data_table['sum'] = \
+        zip(*pd.concat([q_word_embeddings, t_word_embeddings], axis=1).apply(
+            lambda x: late_fusion(x.iloc[0], x.iloc[1]), axis=1))
+    
+    data_table['resim'] = pd.concat([q_entity_embeddings, t_entity_embeddings], axis=1).apply(
+        lambda x: early_fusion(x.iloc[0], x.iloc[1]), axis=1)
+    data_table['reavg'], data_table['remax'], data_table['resum'] = \
+        zip(*pd.concat([q_entity_embeddings, t_entity_embeddings], axis=1).apply(
+            lambda x: late_fusion(x.iloc[0], x.iloc[1]), axis=1))
+
+    data_table['csim'] = pd.concat([q_bag_of_categories, t_bag_of_categories], axis=1).apply(
+        lambda x: early_fusion_only_indexes(x.iloc[0], x.iloc[1]), axis=1)
+    data_table['cavg'], data_table['cmax'], data_table['csum'] = \
+        zip(*pd.concat([q_bag_of_categories, t_bag_of_categories], axis=1).apply(
+            lambda x: late_fusion_only_indexes(x.iloc[0], x.iloc[1]), axis=1))
+
+    data_table['esim'] = pd.concat([q_bag_of_entities, t_bag_of_entities], axis=1).apply(
+        lambda x: early_fusion_only_indexes(x.iloc[0], x.iloc[1]), axis=1)
+    data_table['eavg'], data_table['emax'], data_table['esum'] = \
+        zip(*pd.concat([q_bag_of_entities, t_bag_of_entities], axis=1).apply(
+            lambda x: late_fusion_only_indexes(x.iloc[0], x.iloc[1]), axis=1))
 
     return data_table
 
@@ -179,6 +188,35 @@ def early_fusion(query, table):
     return cosine_similarity(average_query.reshape(1, -1), average_table.reshape(1, -1))[0][0]
 
 
+def early_fusion_only_indexes(query_entities, table_entities):
+    if len(query_entities) == 0 or len(table_entities) == 0:
+        return -1
+
+    query_average = {}
+    for entity in query_entities:
+        for index in entity:
+            if index in query_average:
+                query_average[index] += 1
+            else:
+                query_average[index] = 1
+
+    table_average = {}
+    for entity in table_entities:
+        for index in entity:
+            if index in table_average:
+                table_average[index] += 1
+            else:
+                table_average[index] = 1
+    
+    result = 0
+
+    for q, v in query_average.items():
+        if q in table_average:
+            result += v / len(query_entities) * table_average[q] / len(table_entities)
+
+    return result
+
+
 def early_fusion_incl_tfidf(query, table):
     ''' Calculate the centroids for both query and table vectors and return similarity between them the centroids are weighed by TFIDF'''
     return -1
@@ -188,10 +226,28 @@ def late_fusion(query, table):
     ''' Calculate the cosine similarity between all vector pairs between query and table and return the avg, max and sum '''
     if len(query) == 0 or len(table) == 0:
         return -1, -1, -1
+
     all_pairs = np.zeros(len(query) * len(table))
     for i, q in enumerate(query):
         for j, t in enumerate(table):
-            all_pairs[i*len(table)-1+j] = cosine_similarity(q.reshape(1, -1) ,t.reshape(1, -1))
+            all_pairs[i*len(table)+j] = cosine_similarity(q.reshape(1, -1) ,t.reshape(1, -1))
+
+    return all_pairs.mean(), all_pairs.max(), all_pairs.sum()
+
+
+def late_fusion_only_indexes(query_entities, table_entities):
+    if len(query_entities) == 0 or len(table_entities) == 0:
+        return -1, -1, -1
+
+    all_pairs = np.zeros(len(query_entities) * len(table_entities))
+    for i, q in enumerate(query_entities):
+        for j, t in enumerate(table_entities):
+            sim = 0
+            for index in q:
+                if index in t:
+                    sim += 1
+            all_pairs[i*len(table_entities)+j] = sim
+
     return all_pairs.mean(), all_pairs.max(), all_pairs.sum()
 
 
