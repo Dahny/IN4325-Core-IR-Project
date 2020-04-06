@@ -16,7 +16,7 @@ import time
 import requests
 import json
 
-from preprocessing.utils import list_to_ngrams, read_json, preprocess_string
+from preprocessing.utils import list_to_ngrams, read_json, preprocess_string, read_one_hot_encoding
 
 
 def compute_semantic_features(data_table, query_col='query', table_col='raw_table_data'):
@@ -69,12 +69,27 @@ def compute_semantic_features(data_table, query_col='query', table_col='raw_tabl
     print(f'Table zero rdf2vec: {table_entities_zero}')
 
     # TODO: Bag-of-entities + Bag-of-categories
+    print('---- Load one-hot encodings')
+    entity_to_categories = read_one_hot_encoding('dictionaries/category_indices.json')
+    entity_to_links = read_one_hot_encoding('dictionaries/link_indices.json')
+    print('---- Done loading one-hot encodings')
+
+    q_bag_of_entities = entities_in_query.apply(lambda x: get_one_hot_encodings(x, entity_to_links))
+    t_bag_of_entities = entities_in_table.apply(lambda x: get_one_hot_encodings(x, entity_to_links))
+
+    q_bag_of_categories = entities_in_query.apply(lambda x: get_one_hot_encodings(x, entity_to_categories))
+    t_bag_of_categories = entities_in_table.apply(lambda x: get_one_hot_encodings(x, entity_to_categories))
+
+    entities_to_links = 0
+    entity_to_categories = 0
 
     ## See 3.3 in the paper for the following section
     # I believe no prefix represents word embeddings, 're' is graph embeddings, 'c' bag of category and 'e' bag of entity
     to_compare = [
         ['', pd.concat([q_word_embeddings, t_word_embeddings], axis=1)], 
-        ['re', pd.concat([q_entity_embeddings, t_entity_embeddings], axis=1)]
+        ['re', pd.concat([q_entity_embeddings, t_entity_embeddings], axis=1)],
+        ['c', pd.concat([q_bag_of_categories, t_bag_of_categories], axis=1)],
+        ['e', pd.concat([q_bag_of_entities, t_bag_of_entities], axis=1)]
     ]
     for i in to_compare:
         if i[0] == '':
@@ -137,6 +152,19 @@ def entity_embeddings(entities, rdf2vec):
 
     # # Print to debug
     # print(f'Failed entities:\n{failed_entities}')
+
+    return np.array(result)
+
+
+def get_one_hot_encodings(entities, dictionairy):
+    result = []
+    failed_entities = []
+
+    for entity in entities:
+        try:
+            result.append(dictionairy[entity])
+        except KeyError:
+            failed_entities.append(entity)
 
     return np.array(result)
 
