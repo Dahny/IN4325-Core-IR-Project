@@ -1,7 +1,6 @@
 import json
 import requests
 import re
-import string
 
 import wikipedia
 import wikipediaapi
@@ -159,7 +158,7 @@ def nr_of_tables_and_words(page):
     return n_wiki_tables, n_words
 
 
-def collect_wikipages_queries(query_file, output_folder, cont=False):
+def collect_wikipages_queries(query_file, output_folder):
     max_result = 50
     wikipages = {}
     with open(query_file) as f:
@@ -185,4 +184,4 @@ if __name__ == '__main__':
     output_folder = '../dictionaries'
 
     # collect_entity_information(table_file, query_file, output_folder, cont=True)
-    collect_wikipages_queries(query_file, output_folder, cont=True)
+    collect_wikipages_queries(query_file, output_folder)

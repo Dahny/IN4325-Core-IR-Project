@@ -291,7 +291,7 @@ def page_fraction(table):
     if title not in dict_information:
         return 0
     else:
-        table_size = table['numCols'] * table['numDataRows']
+        table_size = number_of_rows(table) * number_of_columns(table)
         nr_of_words = float(dict_information[title]['nr_of_words'])
         if nr_of_words == 0.0:
             return 0.0
@@ -306,11 +306,15 @@ def pmi(table):
     """
     average_pmi = 0
     counter = 0
-    preprocessed_headers = list(map(lambda x: ' '.join(preprocess_string(x)), table['title']))
+    preprocessed_headers = list(map(lambda x: preprocess_string(x), table['title']))
     for i in range(len(preprocessed_headers) - 1):
         for j in range(i + 1, len(preprocessed_headers)):
             counter += 1
-            average_pmi += compute_pmi(preprocessed_headers[i], preprocessed_headers[j], n_documents, dict_headers)
+            pmi = 0
+            for h1 in preprocessed_headers[i]:
+                for h2 in preprocessed_headers[j]:
+                    pmi += compute_pmi(h1, h2, n_documents, dict_headers)
+            average_pmi += (pmi / (len(preprocessed_headers[i]) * len(preprocessed_headers[j])))
     if counter == 0:
         return 0.0
     return average_pmi / counter
@@ -334,8 +338,11 @@ def compute_pmi(term_a, term_b, n, dictionary):
         p_a = len(tables_a) / n
     if term_b in dictionary:
         tables_b = dictionary[term_b]
+
         p_b = len(tables_b) / n
     p_a_b = len(set(tables_a).intersection(tables_b)) / n
+    if p_a_b == 0.0:
+        return 0.0
     return math.log(p_a_b / (p_a * p_b))
 
 
