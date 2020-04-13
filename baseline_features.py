@@ -314,7 +314,10 @@ def pmi(table):
             for h1 in preprocessed_headers[i]:
                 for h2 in preprocessed_headers[j]:
                     pmi += compute_pmi(h1, h2, n_documents, dict_headers)
-            average_pmi += (pmi / (len(preprocessed_headers[i]) * len(preprocessed_headers[j])))
+            if pmi == 0:
+                average_pmi = 0
+            else:
+                average_pmi += (pmi / (len(preprocessed_headers[i]) * len(preprocessed_headers[j])))
     if counter == 0:
         return 0.0
     return average_pmi / counter
