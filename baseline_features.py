@@ -69,7 +69,7 @@ def compute_baseline_features(data_table, query_col='query', table_col='raw_tabl
         'tImp': table_importance,
         'tPF': page_fraction,
         'PMI': pmi,
-        'pgview': average_page_view,
+        'pgcount': average_page_view,
     }
     for k, v in table_features.items():
         data_table[k] = data_table[table_col].map(v)
