@@ -2,40 +2,73 @@ import json
 import requests
 import re
 
+import wikipedia
 import wikipediaapi
-from tqdm import tqdm
 import pageviewapi
 from bs4 import BeautifulSoup
 
-from utils import preprocess_string, extract_entities_from_wikipedia_string, find_core_column, list_to_ngrams, write_dictionary_to_file
+from preprocessing.utils import preprocess_string, extract_entities_from_wikipedia_string, find_core_column
+from preprocessing.utils import list_to_ngrams, write_dictionary_to_file, to_csv_line, from_csv_line
 
 
 wiki = wikipediaapi.Wikipedia('en')
 
 
 def collect_entity_information(table_file, query_file, output_folder, cont=False):
-    table_entities, table_to_entities = find_all_entities_in_tables(table_file)
-    query_entities, query_to_entities =  find_all_entities_in_queries(query_file)
-    entities = list(set(table_entities + query_entities))
+    entity_information_file = output_folder + '/entities_to_information.csv'
+    dict_fields = ['name', 'inlinks', 'outlinks', 'categories', 'page_views', 'nr_of_tables', 'nr_of_words']
 
-    write_dictionary_to_file(table_to_entities, output_folder + '/table_to_entities.json')
-    write_dictionary_to_file(query_to_entities, output_folder + '/query_to_entities.json')
+    entities_existing = []
+    if cont:
+        with open(entity_information_file, 'r') as f:
+            for line in f.readlines():
+                d = from_csv_line(line, dict_fields)
+                entities_existing.append(d['name'])
 
-    entities_to_information = {}
+        with open('../dictionaries/table_to_entities.json', 'r') as f:
+            table_entities = json.loads(f.read())
 
-    for entity in tqdm(entities):
-        page = wiki.page(entity)
-        if page.exists():
-            new_entity = {}
-            new_entity['inlinks'] = list(page.backlinks.keys())
-            new_entity['outlinks'] = list(page.links.keys())
-            new_entity['categories'] = list(page.categories.keys())
-            new_entity['page_views'] = average_page_view(entity)
-            new_entity['nr_of_tables'], new_entity['nr_of_words'] = nr_of_tables_and_words(page)
-            entities_to_information[entity] = new_entity
-    
-    write_dictionary_to_file(entities_to_information, output_folder + '/entities_to_information.json')
+        with open('../dictionaries/query_to_entities.json', 'r') as f:
+            query_entities = json.loads(f.read())
 
+        entities_list = []
+        for k, v in table_entities.items():
+            entities_list += v
+
+        for k, v in query_entities.items():
+            entities_list += v
+
+        entities = sorted(list(set(entities_list)))
+    else:
+        table_entities, table_to_entities = find_all_entities_in_tables(table_file)
+        query_entities, query_to_entities = find_all_entities_in_queries(query_file)
+        entities = sorted(list(set(table_entities + query_entities)))
+
+        write_dictionary_to_file(table_to_entities, output_folder + '/table_to_entities.json')
+        write_dictionary_to_file(query_to_entities, output_folder + '/query_to_entities.json')
+
+    for i, entity in enumerate(entities):
+        if entity not in entities_existing:
+            page = wiki.page(entity)
+
+            if page.exists():
+                new_entity = {}
+                new_entity[dict_fields[0]] = entity
+                new_entity[dict_fields[1]] = list(page.backlinks.keys())
+                new_entity[dict_fields[2]] = list(page.links.keys())
+                new_entity[dict_fields[3]] = list(page.categories.keys())
+                new_entity[dict_fields[4]] = average_page_view(entity)
+                new_entity[dict_fields[5]], new_entity[dict_fields[6]] = nr_of_tables_and_words(page)
+                with open(entity_information_file, 'a') as f:
+                    f.write(to_csv_line(new_entity, dict_fields))
+            else:
+                print(f'Page {entity} does not exist')
+        else:
+            print(f'Entity {i} - {entity} already existed.')
+        if i % 200 == 0:
+            print(f'---- Wrote {i} / {len(entities)} to file.')
+
+    print('Finished retrieving all entities!')
 
 
 def find_all_entities_in_tables(table_file):
@@ -45,7 +78,7 @@ def find_all_entities_in_tables(table_file):
         wiki_tables = json.load(json_file)
         for table_id, table in wiki_tables.items():
             table_to_entities[table_id] = []
-            table_to_entities[table_id] += extract_entities_from_wikipedia_string(table['pgTitle'])
+            table_to_entities[table_id].append(table['pgTitle'].replace(' ', '_'))
             table_to_entities[table_id] += extract_entities_from_wikipedia_string(table['caption'])
             if len(table['data']) > 0:
                 core_column = find_core_column(table['data'])
@@ -53,7 +86,7 @@ def find_all_entities_in_tables(table_file):
                 for row in table['data']:
                     concat_core_column_string += ' ' + row[core_column]
                 table_to_entities[table_id] += extract_entities_from_wikipedia_string(concat_core_column_string)
-            table_to_entities[table_id] = list(set(table_to_entities[table_id]))
+            table_to_entities[table_id] = sorted(list(set(table_to_entities[table_id])))
             entities += table_to_entities[table_id]
     return entities, table_to_entities
 
@@ -71,11 +104,11 @@ def find_all_entities_in_queries(query_file):
 
     for k, v in query_to_ngrams.items():
         query_entities = [check_if_entity(i) for i in v if check_if_entity(i) is not None]
-        query_to_entities[k] = list(set(query_entities))
+        query_to_entities[k] = sorted(list(set(query_entities)))
         entities += query_entities
 
     return entities, query_to_entities
-    
+
 
 def check_if_entity(s):
     page = wiki.page(s)
@@ -125,9 +158,30 @@ def nr_of_tables_and_words(page):
     return n_wiki_tables, n_words
 
 
+def collect_wikipages_queries(query_file, output_folder):
+    max_result = 50
+    wikipages = {}
+    with open(query_file) as f:
+
+        for line in f:
+            splitted = line.split(' ')
+            query = ' '.join(splitted[1:]).replace('\n', '')
+            wikiterm = wikipedia.search(query)
+            pages = []
+            for idx, term in enumerate(wikiterm[0:max_result]):
+                try:
+                    wikipage = wikipedia.page(term).title
+                except (wikipedia.exceptions.DisambiguationError, wikipedia.exceptions.PageError):
+                    print("A DisambiguationError or a PageError occurred")
+                pages.append(wikipage)
+            wikipages[query] = pages
+    write_dictionary_to_file(wikipages, output_folder + '/wikipages_per_query.json')
+
+
 if __name__ == '__main__':
     table_file = '../data/raw_table_data.json'
     query_file = '../data/queries.txt'
     output_folder = '../dictionaries'
 
-    collect_entity_information(table_file, query_file, output_folder)
+    # collect_entity_information(table_file, query_file, output_folder, cont=True)
+    collect_wikipages_queries(query_file, output_folder)

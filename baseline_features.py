@@ -4,35 +4,37 @@
 #   'idf2','idf3','idf4','idf5','idf6','max','sum','avg','sim','emax','esum','eavg',
 #   'esim','cmax','csum','cavg','csim','remax','resum','reavg','resim','query_l','rel']
 
-from bs4 import BeautifulSoup
-import requests
-import re
-import wikipedia
 import json
 import math
-import wikipediaapi
 from nltk import word_tokenize
-from preprocessing.utils import preprocess_string
-import pageviewapi
-
-wiki = wikipediaapi.Wikipedia('en', extract_format=wikipediaapi.ExtractFormat.HTML)
+from preprocessing.utils import preprocess_string, get_entity_to_information_dict
 
 # Load lookup dictionaries
-with open('dictionaries/words_page_titles.json') as file:
-    dict_page_titles = json.load(file)
-    file.close()
-with open('dictionaries/words_section_titles.json') as file:
-    dict_section_titles = json.load(file)
-    file.close()
-with open('dictionaries/words_captions.json') as file:
-    dict_captions = json.load(file)
-    file.close()
-with open('dictionaries/words_headers.json') as file:
-    dict_headers = json.load(file)
-    file.close()
-with open('dictionaries/words_data.json') as file:
-    dict_data = json.load(file)
-    file.close()
+with open('dictionaries/words_page_titles.json') as f:
+    dict_page_titles = json.load(f)
+    f.close()
+with open('dictionaries/words_section_titles.json') as f:
+    dict_section_titles = json.load(f)
+    f.close()
+with open('dictionaries/words_captions.json') as f:
+    dict_captions = json.load(f)
+    f.close()
+with open('dictionaries/words_headers.json') as f:
+    dict_headers = json.load(f)
+    f.close()
+with open('dictionaries/words_data.json') as f:
+    dict_data = json.load(f)
+    f.close()
+with open('dictionaries/wikipages_per_query.json') as f:
+    dict_query_wikipages = json.load(f)
+    f.close()
+
+print('----- START READING INFORMATION FILE -----')
+dict_information = get_entity_to_information_dict('dictionaries/entities_to_information.csv')
+print('----- FINISHED READING INFORMATION FILE -----')
+
+# Total number of documents
+n_documents = 2932
 
 
 def compute_baseline_features(data_table, query_col='query', table_col='raw_table_data'):
@@ -43,8 +45,6 @@ def compute_baseline_features(data_table, query_col='query', table_col='raw_tabl
     :param table_col:
     :return:
     """
-
-    n_documents = 100
 
     # Query features
     query_features = {
@@ -57,8 +57,8 @@ def compute_baseline_features(data_table, query_col='query', table_col='raw_tabl
         'idf6': idf_catch_all,
      }
     for k, v in query_features.items():
-        data_table[k] = data_table[query_col].map(lambda x: v(x, n_documents))
-    
+        data_table[k] = data_table[query_col].map(v)
+
     # Table featuresCreation
     table_features = {
         'row': number_of_rows,
@@ -69,10 +69,10 @@ def compute_baseline_features(data_table, query_col='query', table_col='raw_tabl
         'tImp': table_importance,
         'tPF': page_fraction,
         'PMI': pmi,
-        'pgview': average_page_view,
+        'pgcount': average_page_view,
     }
     for k, v in table_features.items():
-        data_table[k] = data_table[table_col].map(lambda x: v(x, n_documents))
+        data_table[k] = data_table[table_col].map(v)
 
     # Query-table featuresCreation
     query_table_fatures = {
@@ -92,139 +92,140 @@ def compute_baseline_features(data_table, query_col='query', table_col='raw_tabl
 
 # Query featuresCreation
 
-def query_length(query, _):
+def query_length(query):
     """
     Takes the query and returns the length
     :param query:
-    :param _:
     :return:
     """
     return len(query.split(' '))
 
 
-def idf_page_title(query, n):
+def idf_page_title(query):
     """
     Takes the query and returns the sum of the IDF scores of the words in the page titles
     :param query:
-    :param n:
     :return:
     """
     preprocessed_query = preprocess_string(query)
     final_idf = 0
     for term in preprocessed_query:
         if term in dict_page_titles:
-            final_idf += compute_idf_t(n, len(dict_page_titles[term]))
+            final_idf += compute_idf_t(n_documents, len(dict_page_titles[term]))
     return final_idf
 
 
-def idf_section_title(query, n):
+def idf_section_title(query):
     """
     Takes the query and returns the sum of the IDF scores of the words in the section titles
     :param query:
-    :param n:
     :return:
     """
     preprocessed_query = preprocess_string(query)
     final_idf = 0
     for term in preprocessed_query:
         if term in dict_section_titles:
-            final_idf += compute_idf_t(n, len(dict_section_titles[term]))
+            final_idf += compute_idf_t(n_documents, len(dict_section_titles[term]))
     return final_idf
 
 
-def idf_table_caption(query, n):
+def idf_table_caption(query):
     """
     Takes the query and returns the sum of the IDF scores of the words in the table captions
     :param query:
-    :param n:
     :return:
     """
     preprocessed_query = preprocess_string(query)
     final_idf = 0
     for term in preprocessed_query:
         if term in dict_captions:
-            final_idf += compute_idf_t(n, len(dict_captions[term]))
+            final_idf += compute_idf_t(n_documents, len(dict_captions[term]))
     return final_idf
 
 
-def idf_table_heading(query, n):
+def idf_table_heading(query):
     """
     Takes the query and returns the sum of the IDF scores of the words in the table headings
     :param query:
-    :param n:
     :return:
     """
     preprocessed_query = preprocess_string(query)
     final_idf = 0
     for term in preprocessed_query:
         if term in dict_headers:
-            final_idf += compute_idf_t(n, len(dict_headers[term]))
+            final_idf += compute_idf_t(n_documents, len(dict_headers[term]))
     return final_idf
 
 
-def idf_table_body(query, n):
+def idf_table_body(query):
     """
     Takes the query and returns the sum of the IDF scores of the words in the table bodies
     :param query:
-    :param n:
     :return:
     """
     preprocessed_query = preprocess_string(query)
     final_idf = 0
     for term in preprocessed_query:
         if term in dict_data:
-            final_idf += compute_idf_t(n, len(dict_data[term]))
+            final_idf += compute_idf_t(n_documents, len(dict_data[term]))
     return final_idf
 
 
-def idf_catch_all(query, n):
+def idf_catch_all(query):
     """
     Takes the query and returns the sum of the IDF scores of the words in the all text of the tables
     :param query:
-    :param n:
     :return:
     """
     preprocessed_query = preprocess_string(query)
     final_idf = 0
     for term in preprocessed_query:
         if term in dict_page_titles:
-            final_idf += compute_idf_t(n, len(dict_page_titles[term]))
+            final_idf += compute_idf_t(n_documents, len(dict_page_titles[term]))
         if term in dict_section_titles:
-            final_idf += compute_idf_t(n, len(dict_section_titles[term]))
+            final_idf += compute_idf_t(n_documents, len(dict_section_titles[term]))
         if term in dict_captions:
-            final_idf += compute_idf_t(n, len(dict_captions[term]))
+            final_idf += compute_idf_t(n_documents, len(dict_captions[term]))
         if term in dict_headers:
-            final_idf += compute_idf_t(n, len(dict_headers[term]))
+            final_idf += compute_idf_t(n_documents, len(dict_headers[term]))
         if term in dict_data:
-            final_idf += compute_idf_t(n, len(dict_data[term]))
+            final_idf += compute_idf_t(n_documents, len(dict_data[term]))
     return final_idf
 
 
 def compute_idf_t(n, dft):
+    """
+    Compute the
+    :param n:
+    :param dft:
+    :return:
+    """
     return math.log(n / dft)
 
 
 # Table featuresCreation
 
-def number_of_rows(table, _):
+def number_of_rows(table):
     """
     Takes the table and returns the number of rows
     :param table:
     :return:
     """
-    return table['numDataRows']
+    return len(table['data'])
 
 
-def number_of_columns(table, _):
+def number_of_columns(table):
     """
     Takes the table and return the number of columns
     :param table:
     :return:
     """
-    return table['numCols']
+    if len(table['data']) > 0:
+        return len(table['data'][0])
+    return 0
 
 
-def number_of_null(table, _):
+def number_of_null(table):
     """
     Takes the table and returns the number of empty cells
     :param table:
@@ -238,79 +239,87 @@ def number_of_null(table, _):
     return nulls
 
 
-def number_of_in_links(table, _):
+def number_of_in_links(table):
     """
     Takes the table and returns the number of inlinks to the page embedding the table
     :param table:
     :return:
     """
-    page = wiki.page(table['pgTitle'])
-    return len(page.backlinks)
+    title = table['pgTitle'].replace(' ', '_')
+    if title not in dict_information:
+        return 0
+    else:
+        return len(dict_information[title]['inlinks'])
 
 
-def number_of_out_links(table, _):
+def number_of_out_links(table):
     """
     Takes the table and returns the number of outlinks to the page embedding the table
     :param table:
     :return:
     """
-    page = wiki.page(table['pgTitle'])
-    return len(page.links)
+    title = table['pgTitle'].replace(' ', '_')
+    if title not in dict_information:
+        return 0
+    else:
+        return len(dict_information[title]['outlinks'])
 
 
-def table_importance(table, _):
+def table_importance(table):
     """
     Takes the table and returns the inverse of the number of tables on the page
     :param table:
     :return:
     """
-    page = wiki.page(table['pgTitle'])
-    website_url = requests.get(page.fullurl).text
-    soup = BeautifulSoup(website_url, 'html.parser')
-    n_wiki_tables = len(soup.find_all('table', {'class': 'wikitable'}))
+    title = table['pgTitle'].replace(' ', '_')
+    if title not in dict_information:
+        return 0
+    else:
+        nr_of_tables = float(dict_information[title]['nr_of_tables'])
+        if nr_of_tables == 0.0:
+            return 0.0
+        return 1.0 / float(dict_information[title]['nr_of_tables'])
 
-    return 1.0 / n_wiki_tables
 
-
-def page_fraction(table, _):
+def page_fraction(table):
     """
     Takes the table and returns the inverse of the number of tables on the page
     :param table:
     :return:
     """
-    page = wiki.page(table['pgTitle'])
-    website_url = requests.get(page.fullurl).text
-    soup = BeautifulSoup(website_url, 'html.parser')
-    paragraphs = soup.find_all('p')
-    n_words = 0
-    for paragraph in paragraphs:
-        # Remove <..> and [..] from the paragraph
-        simple_text = re.sub("[\<\[].*?[\>\]]", "", str(paragraph))
-        # Count the number of words in the paragraph
-        n_words += len(simple_text.split())
-
-    table_size = table['numCols'] * table['numDataRows']
-    return table_size / n_words
+    title = table['pgTitle'].replace(' ', '_')
+    if title not in dict_information:
+        return 0
+    else:
+        table_size = number_of_rows(table) * number_of_columns(table)
+        nr_of_words = float(dict_information[title]['nr_of_words'])
+        if nr_of_words == 0.0:
+            return 0.0
+        return table_size / nr_of_words
 
 
-def pmi(table, n):
+def pmi(table):
     """
     Takes the table and returns the ACSDb-based schema coherency score
     :param table:
-    :param n:
     :return:
     """
-    with open(main_path_name + '/dictionaries/dict_headers.json') as file:
-        dict_headers = json.load(file)
-        file.close()
-
     average_pmi = 0
     counter = 0
-    preprocessed_headers = list(map(lambda x: ' '.join(preprocess_string(x)), table['title']))
+    preprocessed_headers = list(map(lambda x: preprocess_string(x), table['title']))
     for i in range(len(preprocessed_headers) - 1):
         for j in range(i + 1, len(preprocessed_headers)):
             counter += 1
-            average_pmi += compute_pmi(preprocessed_headers[i], preprocessed_headers[j], n, dict_headers)
+            pmi = 0
+            for h1 in preprocessed_headers[i]:
+                for h2 in preprocessed_headers[j]:
+                    pmi += compute_pmi(h1, h2, n_documents, dict_headers)
+            if pmi == 0:
+                average_pmi = 0
+            else:
+                average_pmi += (pmi / (len(preprocessed_headers[i]) * len(preprocessed_headers[j])))
+    if counter == 0:
+        return 0.0
     return average_pmi / counter
 
 
@@ -332,8 +341,11 @@ def compute_pmi(term_a, term_b, n, dictionary):
         p_a = len(tables_a) / n
     if term_b in dictionary:
         tables_b = dictionary[term_b]
+
         p_b = len(tables_b) / n
     p_a_b = len(set(tables_a).intersection(tables_b)) / n
+    if p_a_b == 0.0:
+        return 0.0
     return math.log(p_a_b / (p_a * p_b))
 
 
@@ -343,14 +355,11 @@ def average_page_view(table):
     :param table:
     :return:
     """
-    start_date = '20200101'     # January 1 2020
-    end_date = '20200326'       # March 26 2020
-    n_of_page_views = 0
-    page_views = pageviewapi.per_article('en.wikipedia', table['pgTitle'], start_date, end_date,
-                                         access='all-access', agent='all-agents', granularity='daily')
-    for article in page_views['items']:
-        n_of_page_views += article['views']
-    return n_of_page_views / 86
+    title = table['pgTitle'].replace(' ', '_')
+    if title not in dict_information:
+        return 0.0
+    else:
+        return float(dict_information[title]['page_views'])
 
 
 # Query-table featuresCreation
@@ -362,13 +371,18 @@ def term_frequency_query_in_left_column(query, table):
     :param table:
     :return:
     """
-    tokenized_query = word_tokenize(query.lower())
-    tokenized_first_column = list(map(lambda x: preprocess_string(x), table['data'][:][0]))
-    number_found = 0
-    for query_token in tokenized_query:
-        if query_token in tokenized_first_column:
-            number_found += 1
-    return number_found
+    if len(table['data']) > 0:
+        tokenized_query = word_tokenize(query.lower())
+        first_column = [i[0] for i in table['data']]
+        tokenized_first_column = list(map(lambda x: preprocess_string(x), first_column))
+        number_found = 0
+        for query_token in tokenized_query:
+            for cell in tokenized_first_column:
+                if query_token in cell:
+                    number_found += 1
+
+        return number_found
+    return -1
 
 
 def term_frequency_query_in_second_column(query, table):
@@ -378,13 +392,19 @@ def term_frequency_query_in_second_column(query, table):
     :param table:
     :return:
     """
-    tokenized_query = word_tokenize(query.lower())
-    tokenized_second_column = list(map(lambda x: preprocess_string(x), table['data'][:][1]))
-    number_found = 0
-    for query_token in tokenized_query:
-        if query_token in tokenized_second_column:
-            number_found += 1
-    return number_found
+    if len(table['data']) > 0:
+        if len(table['data'][0]) > 1:
+            tokenized_query = word_tokenize(query.lower())
+            second_column = [i[1] for i in table['data']]
+            tokenized_second_column = list(map(lambda x: preprocess_string(x), second_column))
+            number_found = 0
+            for query_token in tokenized_query:
+                for cell in tokenized_second_column:
+                    if query_token in cell:
+                        number_found += 1
+            return number_found
+        return -1
+    return -1
 
 
 def term_frequency_query_in_table_body(query, table):
@@ -394,16 +414,19 @@ def term_frequency_query_in_table_body(query, table):
     :param table:
     :return:
     """
-    tokenized_query = word_tokenize(query.lower())
-    number_found = 0
-    for row in table['data']:
-        data_row = list(map(lambda x: preprocess_string(x), row))
-        for cell in data_row:
-            print("cell ", cell)
-            for query_token in tokenized_query:
-                if query_token in cell:
-                    number_found += 1
-    return number_found
+    if len(table['data']) > 0:
+
+        tokenized_query = word_tokenize(query.lower())
+        number_found = 0
+
+        for row in table['data']:
+            data_row = list(map(lambda x: preprocess_string(x), row))
+            for cell in data_row:
+                for query_token in tokenized_query:
+                    if query_token in cell:
+                        number_found += 1
+        return number_found
+    return -1
 
 
 def ratio_query_terms_in_page_title(query, table):
@@ -419,7 +442,6 @@ def ratio_query_terms_in_page_title(query, table):
     for query_token in tokenized_query:
         if query_token in tokenized_page_title:
             number_found += 1
-
     return number_found / len(tokenized_query)
 
 
@@ -448,15 +470,18 @@ def y_rank(query, table):
     :return:
     """
     max_result = 50
-    wikipedia.set_lang('en')
-    wikiterm = wikipedia.search(query)
-    for idx, term in enumerate(wikiterm[0:max_result]):
-        wikipage = wikipedia.page(term)
-        if wikipage.title == table['pgTitle']:
-            return idx
+    wikipages = dict_query_wikipages[query]
+    for i in range(len(wikipages)):
+        if wikipages[i] == table['pgTitle']:
+            return i + 1
     return max_result + 1
 
 
 def mlm_similarity(query, table):
-    ''' Language modeling score between query and multi-field document repr. of the table '''
+    """
+    Language modeling score between query and multi-field document repr. of the table
+    :param query:
+    :param table:
+    :return:
+    """
     return 0

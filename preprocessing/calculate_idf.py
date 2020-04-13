@@ -1,8 +1,6 @@
-from nltk import word_tokenize
-import re
-import string
-import json, os
-from utils import preprocess_string, write_dictionary_to_file
+import json
+from preprocessing.utils import preprocess_string, write_dictionary_to_file
+
 
 def create_dictionaries_from_wiki_tables(input_file, output_folder):
     dict_headers = {}
@@ -23,14 +21,12 @@ def create_dictionaries_from_wiki_tables(input_file, output_folder):
             preprocessed_caption = preprocess_string(wiki_table['caption'])
             list(map(lambda x: add_to_dict(dict_captions, str(x), table_id), preprocessed_caption))
 
-            preprocessed_headers = list(map(lambda x: ' '.join(preprocess_string(x)), wiki_table['title']))
+            preprocessed_headers = [x for title in wiki_table['title'] for x in preprocess_string(title)]
             list(map(lambda x: add_to_dict(dict_headers, str(x), table_id), preprocessed_headers))
 
-            preprocessed_data = list(map(lambda x: list(map(lambda y: preprocess_string(y), x)),
-                                            wiki_table['data']))
-            list(map(lambda x: list(map(lambda y: list(map(lambda z: add_to_dict(dict_data, z, table_id),
-                                                            y)), x)), preprocessed_data))
-
+            preprocessed_data = list(map(lambda x: list(map(lambda y: preprocess_string(y), x)), wiki_table['data']))
+            list(map(lambda x: list(map(lambda y: list(map(lambda z: add_to_dict(dict_data, z, table_id), y)), x)),
+                     preprocessed_data))
 
     write_dictionary_to_file(dict_headers, output_folder + '/words_headers.json')
     write_dictionary_to_file(dict_page_titles, output_folder + '/words_page_titles.json')

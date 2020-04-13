@@ -7,20 +7,47 @@ from utils import write_dictionary_to_file
 base_url = "http://data.dws.informatik.uni-mannheim.de/rdf2vec/models/DBpedia/"
 url = base_url + "2016-04/GlobalVectors/1_uniform/DBpediaVecotrs200_20Shuffle.txt"
 
-# replace this with actual entities we are looking for
-entities_list = ['European_Union', 'Council_of_the_European_Union', 'Underground_Ernie']
-entities_list = list(map(lambda x: x.lower(), entities_list))
+with open('../dictionaries/table_to_entities.json', 'r') as f:
+    table_entities = json.loads(f.read())
+
+with open('../dictionaries/query_to_entities.json', 'r') as f:
+    query_entities = json.loads(f.read())
+
+entities_list = []
+for k, v in table_entities.items():
+    entities_list += v
+
+for k, v in query_entities.items():
+    entities_list += v
+
+entities_list = list(map(lambda x: x.lower(), set(entities_list)))
 
 vecs = {}
 
-for line in tqdm(open(url)):
-    preprocessed = line.split('http://dbpedia.org/resource/')[1].split('>')
-    entity_name = preprocessed[0].strip()
-    vector = preprocessed[1].strip()
-    if entity_name.lower() in entities_list:
-        vecs[entity_name] = np.fromstring(vector, sep=" ")
+counter = 0
 
+print(len(entities_list))
+
+warnings = []
+
+for line in open(url):
+    try:
+        preprocessed = line.split('http://dbpedia.org/resource/')[1].split('>')
+        entity_name = preprocessed[0].strip()
+        vector = preprocessed[1].strip()
+        if entity_name.lower() in entities_list:
+            print(f'---- Found entity {entity_name}')
+            vecs[entity_name] = [float(x) for x in vector.split(' ')]
+    except:
+        print('Warning, no entity found.')
+        warnings.append(line)
+        pass
+    counter += 1
+    if counter % 500 == 0:
+        print(f'---- Processed {counter} entities')
+
+print('WARNINGS:')
+print(warnings)
+print('Done!')
 
 write_dictionary_to_file(vecs, '../dictionaries/rdf2vec.json')
-with open('rdf2vec.json', 'w') as json_file:
-    json.dump(vecs, json_file)

@@ -4,9 +4,6 @@ import numpy as np
 # Word tokenizer
 from nltk import word_tokenize
 
-# Entity extraction
-from SPARQLWrapper import SPARQLWrapper, JSON
-
 # Word2vec
 import gensim.downloader as api
 from gensim.models import KeyedVectors
@@ -17,8 +14,9 @@ import re
 import os
 import time
 import requests
+import json
 
-from preprocessing.utils import list_to_ngrams
+from preprocessing.utils import list_to_ngrams, read_json, preprocess_string, read_one_hot_encoding
 
 
 def compute_semantic_features(data_table, query_col='query', table_col='raw_table_data'):
@@ -28,40 +26,88 @@ def compute_semantic_features(data_table, query_col='query', table_col='raw_tabl
     words_in_query = data_table[query_col].map(tokenize_query)
     words_in_table = data_table[table_col].map(tokenize_table)
     
-    entities_in_query = unique_query_execution(words_in_query, entities_from_words)
+    query_to_entities = read_json('dictionaries/query_to_entities.json')
+    table_to_entities = read_json('dictionaries/table_to_entities.json')
+    entities_in_query = data_table['query_id'].map(lambda x: query_to_entities[str(x)])
+    entities_in_table = data_table['table_id'].map(lambda x: table_to_entities[x])
 
-    # TODO: Implement entities from table function as according to paper
-    entities_in_table = words_in_table.map(entities_from_table)
+    query_entities_zero = 0
+    table_entities_zero = 0
+    for i in range(len(entities_in_query)):
+        if len(entities_in_query[i]) == 0:
+            query_entities_zero += 1
+        if len(entities_in_table[i]) == 0:
+            table_entities_zero += 1
+    print(f'Query zero entities: {query_entities_zero}')
+    print(f'Table zero entities: {table_entities_zero}')
 
     ## See 3.2 in the paper for the following section
     start_time = time.time()
-    wv = load_word2vec('word2vec.kv')
-    print(f'---------- TOOK {time.time() - start_time} SECONDS TO LOAD WORD2VEC ----------')
+    wv = load_word2vec('dictionaries/word2vec.kv')
+    print(f'----- TOOK {time.time() - start_time} SECONDS TO LOAD WORD2VEC -----')
     q_word_embeddings = unique_query_execution(words_in_query, word_embeddings, wv)
     t_word_embeddings = words_in_table.apply(lambda x: word_embeddings(x, wv))
     # Free memory from word2vec
     wv = 0
     
-    # TODO: Find some way to get entity embeddings
-    q_entity_embeddings = entities_in_query.map(entity_embeddings)
-    t_entity_embeddings = entities_in_table.map(entity_embeddings)
+    start_time = time.time()
+    rdf2vec = load_rdf2vec('dictionaries/rdf2vec.json')
+    print(f'----- TOOK {time.time() - start_time} SECONDS TO LOAD RDF2VEC -----')
+    q_entity_embeddings = entities_in_query.apply(lambda x: entity_embeddings(x, rdf2vec))
+    t_entity_embeddings = entities_in_table.apply(lambda x: entity_embeddings(x, rdf2vec))
+    # Free memory from rdf2vec
+    rdf2vec = 0
+
+    query_entities_zero = 0
+    table_entities_zero = 0
+    for i in range(len(q_entity_embeddings)):
+        if len(q_entity_embeddings[i]) == 0:
+            query_entities_zero += 1
+        if len(t_entity_embeddings[i]) == 0:
+            table_entities_zero += 1
+    print(f'Query zero rdf2vec: {query_entities_zero}')
+    print(f'Table zero rdf2vec: {table_entities_zero}')
 
     # TODO: Bag-of-entities + Bag-of-categories
+    print('---- Load one-hot encodings')
+    entity_to_categories = read_one_hot_encoding('dictionaries/category_indices.json')
+    entity_to_links = read_one_hot_encoding('dictionaries/link_indices.json')
+    print('---- Done loading one-hot encodings')
+
+    q_bag_of_entities = entities_in_query.apply(lambda x: get_one_hot_encodings(x, entity_to_links))
+    t_bag_of_entities = entities_in_table.apply(lambda x: get_one_hot_encodings(x, entity_to_links))
+
+    q_bag_of_categories = entities_in_query.apply(lambda x: get_one_hot_encodings(x, entity_to_categories))
+    t_bag_of_categories = entities_in_table.apply(lambda x: get_one_hot_encodings(x, entity_to_categories))
+
+    entities_to_links = 0
+    entity_to_categories = 0
 
     ## See 3.3 in the paper for the following section
     # I believe no prefix represents word embeddings, 're' is graph embeddings, 'c' bag of category and 'e' bag of entity
-    to_compare = [
-        ['', pd.concat([q_word_embeddings, t_word_embeddings], axis=1)], 
-        # ['re', pd.concat([q_entity_embeddings, table_entity_embeddings], axis=1)]
-    ]
-    for i in to_compare:
-        if i[0] == '':
-            # TODO: Change this to weighed TF_IDF version (this is only for word_embeddings as per prefix)
-            data_table[i[0] + 'sim'] = i[1].apply(lambda x: early_fusion(x.iloc[0], x.iloc[1]), axis=1)
-        else:
-            data_table[i[0] + 'sim'] = i[1].apply(lambda x: early_fusion(x.iloc[0], x.iloc[1]), axis=1)
-        data_table[i[0] + 'avg'], data_table[i[0] + 'max'], data_table[i[0] + 'sum'] = \
-            zip(*i[1].apply(lambda x: late_fusion(x.iloc[0], x.iloc[1]), axis=1))
+    data_table['sim'] = pd.concat([q_word_embeddings, t_word_embeddings], axis=1).apply(
+        lambda x: early_fusion(x.iloc[0], x.iloc[1]), axis=1)
+    data_table['avg'], data_table['max'], data_table['sum'] = \
+        zip(*pd.concat([q_word_embeddings, t_word_embeddings], axis=1).apply(
+            lambda x: late_fusion(x.iloc[0], x.iloc[1]), axis=1))
+    
+    data_table['resim'] = pd.concat([q_entity_embeddings, t_entity_embeddings], axis=1).apply(
+        lambda x: early_fusion(x.iloc[0], x.iloc[1]), axis=1)
+    data_table['reavg'], data_table['remax'], data_table['resum'] = \
+        zip(*pd.concat([q_entity_embeddings, t_entity_embeddings], axis=1).apply(
+            lambda x: late_fusion(x.iloc[0], x.iloc[1]), axis=1))
+
+    data_table['csim'] = pd.concat([q_bag_of_categories, t_bag_of_categories], axis=1).apply(
+        lambda x: early_fusion_only_indexes(x.iloc[0], x.iloc[1]), axis=1)
+    data_table['cavg'], data_table['cmax'], data_table['csum'] = \
+        zip(*pd.concat([q_bag_of_categories, t_bag_of_categories], axis=1).apply(
+            lambda x: late_fusion_only_indexes(x.iloc[0], x.iloc[1]), axis=1))
+
+    data_table['esim'] = pd.concat([q_bag_of_entities, t_bag_of_entities], axis=1).apply(
+        lambda x: early_fusion_only_indexes(x.iloc[0], x.iloc[1]), axis=1)
+    data_table['eavg'], data_table['emax'], data_table['esum'] = \
+        zip(*pd.concat([q_bag_of_entities, t_bag_of_entities], axis=1).apply(
+            lambda x: late_fusion_only_indexes(x.iloc[0], x.iloc[1]), axis=1))
 
     return data_table
 
@@ -77,29 +123,12 @@ def tokenize_table(table, incl_headers=True):
     pgTable_tokens = word_tokenize(table['pgTitle'])
     caption_tokens = word_tokenize(table['caption'])
     if incl_headers:
-        headers_tokens = process_headers(table['title'])
+        headers_tokens = [x for title in table['title'] for x in preprocess_string(title)]
     else:
         headers_tokens = []
 
     result = [x.lower() for x in list(set(pgTable_tokens + caption_tokens + headers_tokens))]
     return result
-
-
-def entities_from_words(words, use_n_grams=True, k=10):
-    ''' Return all words in the data that are entities '''
-    # print("words " + str(len(words)))
-    if use_n_grams:
-        words = list_to_ngrams(words)
-            
-    result = [i for i in words if check_for_entity_in_dbpedia(i)]
-    # print("results " + str(len(result)))
-    return result
-
-
-def entities_from_table(table, k=10):
-    ''' Get entities based on DBpedia knowledge base only return the top 'k' entitites ''' 
-    ''' Should also check for "core column" as described in the paper '''
-    return {}
 
 
 ## Functions related to 3.2 Semantic Representations
@@ -119,68 +148,139 @@ def word_embeddings(words, wv):
     return np.array(result)
 
 
-def entity_embeddings(entities):
+def entity_embeddings(entities, rdf2vec):
     ''' Returns a set with the graph embeddings, from RDF2vec, for each entity. '''
-    return {}
+    result = []
+    failed_entities = []
+
+    for entity in entities:
+        try:
+            result.append(rdf2vec[entity.lower()])
+        except KeyError:
+            failed_entities.append(entity)
+
+    # # Print to debug
+    # print(f'Failed entities:\n{failed_entities}')
+
+    return np.array(result)
+
+
+def get_one_hot_encodings(entities, dictionairy):
+    result = []
+    failed_entities = []
+
+    for entity in entities:
+        try:
+            result.append(dictionairy[entity])
+        except KeyError:
+            failed_entities.append(entity)
+
+    return np.array(result)
 
 
 ## Functions related to 3.3 Similarity Measures
 def early_fusion(query, table):
     ''' Calculate the centroids for both query and table vectors and return similarity between them '''
+    if len(query) == 0 or len(table) == 0:
+        return -1
     average_query = query.mean(axis=0)
     average_table = table.mean(axis=0)
     return cosine_similarity(average_query.reshape(1, -1), average_table.reshape(1, -1))[0][0]
 
 
+def early_fusion_only_indexes(query_entities, table_entities):
+    if len(query_entities) == 0 or len(table_entities) == 0:
+        return -1
+
+    query_average = {}
+    for entity in query_entities:
+        for index in entity:
+            if index in query_average:
+                query_average[index] += 1
+            else:
+                query_average[index] = 1
+
+    table_average = {}
+    for entity in table_entities:
+        for index in entity:
+            if index in table_average:
+                table_average[index] += 1
+            else:
+                table_average[index] = 1
+    
+    result = 0
+
+    for q, v in query_average.items():
+        if q in table_average:
+            result += v / len(query_entities) * table_average[q] / len(table_entities)
+
+    return result
+
+
 def early_fusion_incl_tfidf(query, table):
     ''' Calculate the centroids for both query and table vectors and return similarity between them the centroids are weighed by TFIDF'''
-    return 0
+    return -1
 
 
 def late_fusion(query, table):
     ''' Calculate the cosine similarity between all vector pairs between query and table and return the avg, max and sum '''
+    if len(query) == 0 or len(table) == 0:
+        return -1, -1, -1
+
     all_pairs = np.zeros(len(query) * len(table))
     for i, q in enumerate(query):
         for j, t in enumerate(table):
-            all_pairs[i*len(table)-1+j] = cosine_similarity(q.reshape(1, -1) ,t.reshape(1, -1))
+            all_pairs[i*len(table)+j] = cosine_similarity(q.reshape(1, -1) ,t.reshape(1, -1))
+
     return all_pairs.mean(), all_pairs.max(), all_pairs.sum()
 
 
-## Helper functions
-def check_for_entity_in_dbpedia(entity):
-    ''' Checks the DBPedia API whether an entity exists with the name '''
-    sparql = SPARQLWrapper("http://dbpedia.org/sparql")
+def late_fusion_only_indexes(query_entities, table_entities):
+    if len(query_entities) == 0 or len(table_entities) == 0:
+        return -1, -1, -1
 
-    sparql.setQuery("""
-    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-    SELECT ?uri ?label
-    WHERE { 
-        { ?uri rdfs:label \"""" + entity.lower() + """" } UNION
-        { ?uri rdfs:label \"""" + entity.capitalize() + """" }.
-        ?uri rdfs:label ?label
-    }
-    LIMIT 1
-    """)
-    sparql.setReturnFormat(JSON)
-    results = sparql.query().convert()
+    all_pairs = np.zeros(len(query_entities) * len(table_entities))
+    for i, q in enumerate(query_entities):
+        for j, t in enumerate(table_entities):
+            sim = 0
+            for index in q:
+                if index in t:
+                    sim += 1
+            all_pairs[i*len(table_entities)+j] = sim
 
-    if len(results["results"]["bindings"]) > 0:
-        return True
-    else:
-        return False
+    return all_pairs.mean(), all_pairs.max(), all_pairs.sum()
 
 
+### Helper functions
 def load_word2vec(wv_file_name):
     ''' Gets the word2vec model traind on google news '''
     if not os.path.exists(wv_file_name):
-        print('---------- DID NOT FIND Word2Vec, START DOWNLOADING ----------')
+        print('----- DID NOT FIND Word2Vec, START DOWNLOADING -----')
         wv = api.load('word2vec-google-news-300')
         wv = wv.wv
         wv.save(wv_file_name)
     else:        
-        print('---------- FOUND Word2Vec LOCALLY, START READING ----------')
+        print('----- FOUND Word2Vec LOCALLY, START READING -----')
         wv = KeyedVectors.load(wv_file_name, mmap='r')
     return wv
+
+
+def load_rdf2vec(path):
+    if not os.path.exists(path):
+        print('----- DID NOT FIND Rdf2Vec, DOWNLOAD FIRST -----')
+    else:
+        with open(path, 'r') as f:
+            read_dict = json.loads(f.read())
+        result = {}
+        for k, v in read_dict.items():
+            if k.lower() in result:
+                # # Print to debug
+                # print(f'Already found {k} in rdf2vec. Skipping this double.')
+                pass
+            else:
+                result[k.lower()] = np.array(v)
+        return result
+
 
 def unique_query_execution(query_set, function, *args):
     ''' Makes sure the function is only ran once for each query but will return a full series '''

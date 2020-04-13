@@ -4,11 +4,11 @@ from baseline_features import compute_baseline_features
 from semantic_features import compute_semantic_features
 
 
-FINAL_HEADERS = ['query_id','query','table_id','row','col','nul',
-  'in_link','out_link','pgcount','tImp','tPF','leftColhits','SecColhits',
-  'bodyhits','PMI','qInPgTitle','qInTableTitle','yRank','csr_score','idf1',
-  'idf2','idf3','idf4','idf5','idf6','max','sum','avg','sim','emax','esum','eavg',
-'esim','cmax','csum','cavg','csim','remax','resum','reavg','resim','query_l','rel']
+FINAL_HEADERS = ['query_id', 'query', 'table_id', 'row', 'col', 'nul', 'in_link', 'out_link', 'pgcount', 'tImp',
+                 'tPF', 'leftColhits', 'SecColhits', 'bodyhits', 'PMI', 'qInPgTitle', 'qInTableTitle', 'yRank',
+                 'csr_score', 'idf1', 'idf2', 'idf3', 'idf4', 'idf5', 'idf6', 'max', 'sum', 'avg', 'sim', 'emax',
+                 'esum', 'eavg', 'esim', 'cmax', 'csum', 'cavg', 'csim', 'remax', 'resum', 'reavg', 'resim',
+                 'query_l', 'rel']
 
 INPUT_FILE_QRELS = 'data/qrels.txt'
 INPUT_FILE_QUERIES = 'data/queries.txt'
@@ -18,7 +18,7 @@ FEATURE_FILE = 'data/features.csv'
 
 
 def read_qrels(input_file: str):
-    data = pd.read_table(input_file, sep = '\t', names=['query_id', 'unknown', 'table_id', 'rel'])
+    data = pd.read_table(input_file, sep='\t', names=['query_id', 'unknown', 'table_id', 'rel'])
     data = data.drop(columns=['unknown'])
     return data
 
