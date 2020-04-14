@@ -7,7 +7,7 @@
 import json
 import math
 from nltk import word_tokenize
-from preprocessing.utils import preprocess_string, get_entity_to_information_dict
+from preprocessing.utils import preprocess_string, get_entity_to_information_dict, read_json
 
 # Load lookup dictionaries
 with open('dictionaries/words_page_titles.json') as f:
@@ -487,4 +487,9 @@ def mlm_similarity(query, table_id):
     :param table:
     :return:
     """
-    return 0
+
+    # Read all the rankings
+    rankings = read_json("./data/multi_field_rankings.json")
+
+    # Return the score based on query and table_id
+    return rankings[query][table_id]
