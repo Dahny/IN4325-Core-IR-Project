@@ -491,5 +491,12 @@ def mlm_similarity(query, table_id):
     # Read all the rankings
     rankings = read_json("./data/multi_field_rankings.json")
 
-    # Return the score based on query and table_id
-    return rankings[query][table_id]
+    # Return the scores based on the query
+    scores_query = rankings[query]
+    score = 0
+
+    # return the score if there is one, else return 0
+    if table_id in scores_query:
+        score = scores_query[table_id]
+
+    return score
