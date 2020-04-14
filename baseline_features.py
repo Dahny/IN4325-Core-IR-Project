@@ -28,6 +28,9 @@ with open('dictionaries/words_data.json') as f:
 with open('dictionaries/wikipages_per_query.json') as f:
     dict_query_wikipages = json.load(f)
     f.close()
+with open('data/multi_field_rankings.json') as f:
+    rankings = json.load(f)
+    f.close()
 
 print('----- START READING INFORMATION FILE -----')
 dict_information = get_entity_to_information_dict('dictionaries/entities_to_information.csv')
@@ -487,10 +490,6 @@ def mlm_similarity(query, table_id):
     :param table:
     :return:
     """
-
-    # Read all the rankings
-    rankings = read_json("./data/multi_field_rankings.json")
-
     # Return the scores based on the query
     scores_query = rankings[query]
     score = 0
