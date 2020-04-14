@@ -2,6 +2,8 @@ import extraction
 import rank_bm25
 import pandas as pd
 import json
+import numpy as np
+from preprocessing.utils import preprocess_string
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 import nltk
@@ -106,17 +108,8 @@ def bm25_ranking_single_field(features, query):
 
 def preprocess_field(field):
     field_result = field
-    # lowercase
-    field_result = field_result.lower()
-    # removing numbers
-    field_result = re.sub(r'\d', '', field_result)
-    # removing punctuation
-    field_result = field_result.translate(str.maketrans(string.punctuation, ' '*len(string.punctuation)))
-    # removing white spaces
-    field_result = field_result.strip()
-    # tokenize into words
-    field_result = word_tokenize(field_result, language='english')
-    # remove stop words
+    # Preprocess the initial string
+    field_result = preprocess_string(field_result)
     filtered_result = []
     stop_words = set(stopwords.words('english'))
     for w in field_result:
@@ -151,6 +144,7 @@ def gendata_single_field(features):
                 "data": data,
                 }
 
+
 def gendata_multi_field(features):
     for (table, row) in features.iterrows():
         fields = {}
@@ -163,12 +157,14 @@ def gendata_multi_field(features):
             "multi-fields": fields
         }
 
+
 def bulk_index(features, method='single-field'):
     es = init_elasticsearch()
 
     # index with bulk loads of 200 because of timeout issue
     i = 0
-    for j in range(200, 3000, 200):
+    for j in range(100, 3000, 100):
+        print('indexing table number:', j)
         if method == 'single-field':
             helpers.bulk(es, gendata_single_field(features[i:j]), request_timeout=2000)
         if method == 'multi-field':
@@ -179,6 +175,7 @@ def bulk_index(features, method='single-field'):
 def create_indices_similarity_single_field(features):
     es = init_elasticsearch()
 
+    counter = 1
     for (table, _) in features["data"].iteritems():
         es.indices.create(index=table, body={
             "mappings": {
@@ -203,6 +200,10 @@ def create_indices_similarity_single_field(features):
                 }
             }
         })
+        # Show status after every 100 indices
+        if counter % 100 == 0:
+            print('indexed', counter, 'of total', len(features["data"]), 'indices')
+        counter += 1
 
 
 def search_query_single_field(es, query, index=None, size=10, search_type="dfs_query_then_fetch", explain=False):
@@ -229,17 +230,31 @@ def search_query_multi_field(es, query, index=None, size=10, search_type="dfs_qu
                         }
     }, index=index, size=size, search_type=search_type, request_timeout=3000, explain=explain)
 
-# This method doesn't work as apparently you can't update the similarity of indices
-def change_similarity_Dirichlet(es, mu=2000):
+
+# This is based on the single-field features
+def get_lengths_info_documents(features):
+    lengths = {}
+    for table, data in features.iterrows():
+        lengths[table] = len(data.data)
+    mean = np.mean(list(lengths.values()))
+    std = np.std(list(lengths.values()))
+    return lengths, mean, std
+
+
+
+
+# This method only works when updating the parameter of the similarity
+# Not the similarity itself
+def change_similarity_Dirichlet(es, mu=2000, index="_all"):
     # First close all indices in order to update th settings
-    es.indices.close(index="_all", request_timeout=8000)
+    es.indices.close(index=index, request_timeout=8000)
 
     # Update settings of all the indices
-    es.indices.put_settings(index="_all", body={
+    es.indices.put_settings(index=index, body={
         "settings": {
             "index": {
                 "similarity": {
-                    "my_similarity": {
+                    "default": {
                         "type": "LMDirichlet",
                         "mu": mu
                     }
@@ -249,7 +264,7 @@ def change_similarity_Dirichlet(es, mu=2000):
     }, request_timeout=8000)
 
     # Reopen all indices
-    es.indices.open(index="_all", request_timeout=8000)
+    es.indices.open(index=index, request_timeout=8000)
 
 
 def get_all_scores(es, queries, method='single-field', name='rankings.json'):
