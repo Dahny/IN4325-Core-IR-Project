@@ -85,7 +85,10 @@ def compute_baseline_features(data_table, query_col='query', table_col='raw_tabl
         'csr_score': mlm_similarity,
     }
     for k, v in query_table_fatures.items():
-        data_table[k] = data_table.apply(lambda x: v(x[query_col], x[table_col]), axis=1)
+        if k == 'csr_score':
+            data_table[k] = data_table.apply(lambda x: v(x[query_col], x['table_id']), axis=1)
+        else:
+            data_table[k] = data_table.apply(lambda x: v(x[query_col], x[table_col]), axis=1)
 
     return data_table
 
@@ -477,7 +480,7 @@ def y_rank(query, table):
     return max_result + 1
 
 
-def mlm_similarity(query, table):
+def mlm_similarity(query, table_id):
     """
     Language modeling score between query and multi-field document repr. of the table
     :param query:
