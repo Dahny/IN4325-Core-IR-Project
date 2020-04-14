@@ -1,25 +1,19 @@
-import extraction
+from extraction import read_tables, INPUT_FILE_TABLES, read_queries, INPUT_FILE_QUERIES
+from elasticsearch import Elasticsearch
+from elasticsearch import helpers
+from preprocessing.utils import preprocess_string
+from nltk.corpus import stopwords
 import rank_bm25
 import pandas as pd
 import json
 import numpy as np
-from preprocessing.utils import preprocess_string
-from nltk.tokenize import word_tokenize
-from nltk.corpus import stopwords
 import nltk
 nltk.download('stopwords')
-from nltk.util import ngrams
-from nltk.lm import NgramCounter
-from nltk.lm.preprocessing import padded_everygram_pipeline
-from nltk.lm import MLE
-from elasticsearch import Elasticsearch
-from elasticsearch import helpers
-import re
-import string
+
 
 # Either single-field or multi-field
-def generate_features(method = 'single-field'):
-    tables_raw = extraction.read_tables(extraction.INPUT_FILE_TABLES)
+def generate_features(method='single-field'):
+    tables_raw = read_tables(INPUT_FILE_TABLES)
     tables = pd.DataFrame.from_dict(tables_raw)
     output = pd.DataFrame()
 
@@ -119,14 +113,11 @@ def preprocess_field(field):
     return filtered_result
 
 
-
-def init_elasticsearch(host = 'localhost', port = 9200):
+def init_elasticsearch(host='localhost', port=9200):
     return Elasticsearch([{'host': host, 'port': port}])
 
 
-def elasticsearch_index_single_field(features):
-    es = init_elasticsearch()
-
+def elasticsearch_index_single_field(es, features):
     counter = 0
     for (table, data) in features["data"].iteritems():
         field = {
@@ -136,87 +127,81 @@ def elasticsearch_index_single_field(features):
         counter += 1
 
 
-def gendata_single_field(features):
-    for (table, data) in features["data"].iteritems():
-        yield {
-                "_index": table,
-                "_type": "_doc",
-                "data": data,
-                }
-
-
-def gendata_multi_field(features):
+def gendata(features, method='single-field'):
     for (table, row) in features.iterrows():
         fields = {}
         for col, data in row.iteritems():
             fields[col] = data
 
         yield {
-            "_index": table,
+            "_index": method,
             "_type": "_doc",
-            "multi-fields": fields
+            "_id": table,
+            method: fields
         }
 
 
-def bulk_index(features, method='single-field'):
-    es = init_elasticsearch()
-
+def bulk_index(es, features, method='single-field'):
     # index with bulk loads of 200 because of timeout issue
     i = 0
     for j in range(100, 3000, 100):
         print('indexing table number:', j)
-        if method == 'single-field':
-            helpers.bulk(es, gendata_single_field(features[i:j]), request_timeout=2000)
-        if method == 'multi-field':
-            helpers.bulk(es, gendata_multi_field(features[i:j]), request_timeout=2000)
+        helpers.bulk(es, gendata(features[i:j], method), request_timeout=2000)
         i = j
 
 
-def create_indices_similarity_single_field(features):
-    es = init_elasticsearch()
+def create_index_similarity(es, features, method='single-field'):
+    mu = get_avg_length_docs(features)
 
-    counter = 1
-    for (table, _) in features["data"].iteritems():
-        es.indices.create(index=table, body={
-            "mappings": {
-                "properties": {
-                    "data": {
-                        "type": "text",
-                        "fields": {
-                            "keyword": {
-                                "type": "keyword",
-                                "ignore_above": 256
-                            }
+    fields = {}
+
+    # All of the fields will be a list of keywords
+    field_type = {
+                    "type": "text",
+                    "fields": {
+                        "keyword": {
+                            "type": "keyword",
+                            "ignore_above": 256
                         }
                     }
                 }
-            },
-            "settings": {
-                "similarity": {
-                    "default": {
-                        "type": "LMDirichlet",
-                        "mu": 2000
-                    }
+
+    # Take example row to generate data type body
+    example = features.iloc[1]
+    for col, _ in example.iteritems():
+        fields[col] = field_type
+
+    es.indices.create(index=method, body={
+        "mappings": {
+            "properties": {
+                method: {
+                    "properties": fields
                 }
             }
-        })
-        # Show status after every 100 indices
-        if counter % 100 == 0:
-            print('indexed', counter, 'of total', len(features["data"]), 'indices')
-        counter += 1
+        },
+        "settings": {
+            "similarity": {
+                "default": {
+                    "type": "LMDirichlet",
+                    "mu": mu
+                }
+            }
+        }
+    })
 
 
-def search_query_single_field(es, query, index=None, size=10, search_type="dfs_query_then_fetch", explain=False):
+
+def search_query_single_field(es, query, index='single-field', size=10, search_type="dfs_query_then_fetch", explain=False):
     return es.search(body={
                     'query': {
                         'match': {
-                            "data": query
+                            "single-field.data": query
                         }
                     }
     }, index=index, size=size, search_type=search_type, request_timeout=3000, explain=explain)
 
 
-def search_query_multi_field(es, query, index=None, size=10, search_type="dfs_query_then_fetch", agg_type="most_fields",
+def search_query_multi_field(es, query, index='multi-field', size=10, search_type="dfs_query_then_fetch", agg_type="most_fields",
                              explain=False):
     return es.search(body={
                         'query': {
@@ -231,16 +216,16 @@ def search_query_multi_field(es, query, index=None, size=10, search_type="dfs_qu
     }, index=index, size=size, search_type=search_type, request_timeout=3000, explain=explain)
 
 
-# This is based on the single-field features
-def get_lengths_info_documents(features):
+# Get avg doc length for mu
+def get_avg_length_docs(features):
     lengths = {}
-    for table, data in features.iterrows():
-        lengths[table] = len(data.data)
+    for table, row in features.iterrows():
+        length = 0
+        for _, data in row.iteritems():
+            length += len(data)
+        lengths[table] = length
     mean = np.mean(list(lengths.values()))
-    std = np.std(list(lengths.values()))
-    return lengths, mean, std
-
-
+    return mean
 
 
 # This method only works when updating the parameter of the similarity
@@ -285,3 +270,33 @@ def get_all_scores(es, queries, method='single-field', name='rankings.json'):
     file = open(name, 'w')
     file.write(json.dumps(scores, indent=2))
     file.close()
+
+
+def pipeline(host='localhost', port=9200):
+    print("Starting pipeline...")
+
+    print("Init connection with ElasticSearch")
+    es = init_elasticsearch(host, port)
+
+    # Extract text from tables
+    print("Extracting Features")
+    s_features = generate_features(es, 'single-field')
+    m_features = generate_features(es, 'multi-field')
+
+    # Create indices
+    print("Creating indices")
+    create_index_similarity(es, s_features, 'single-field')
+    create_index_similarity(es, m_features, 'multi-field')
+
+    # Insert document data into the indices
+    print("inserting data into indices")
+    bulk_index(es, s_features, 'single-field')
+    bulk_index(es, m_features, 'multi-field')
+
+    # Get rankings from queries and write to file
+    print("writing rankings to file")
+    queries = read_queries(INPUT_FILE_QUERIES)
+    get_all_scores(es, queries, 'single-field', 'single-field-rankings.json')
+    get_all_scores(es, queries, 'multi-field', 'multi-field-rankings.json')
+
+    print("Pipeline done!")
