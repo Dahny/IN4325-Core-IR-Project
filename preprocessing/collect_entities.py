@@ -7,8 +7,8 @@ import wikipediaapi
 import pageviewapi
 from bs4 import BeautifulSoup
 
-from preprocessing.utils import preprocess_string, extract_entities_from_wikipedia_string, find_core_column
-from preprocessing.utils import list_to_ngrams, write_dictionary_to_file, to_csv_line, from_csv_line
+from utils import preprocess_string, extract_entities_from_wikipedia_string, find_core_column
+from utils import list_to_ngrams, write_dictionary_to_file, to_csv_line, from_csv_line
 
 
 wiki = wikipediaapi.Wikipedia('en')
@@ -113,11 +113,12 @@ def find_all_entities_in_queries(query_file):
 def check_if_entity(s):
     page = wiki.page(s)
     if page.exists():
-        res = page.fullurl.split('/')[-1]
-        if res.lower().replace('_', ' ') == s:
-            return res
-        else:
-            return
+        return page.title.replace(' ', '_')
+        # res = page.fullurl.split('/')[-1]
+        # if res.lower().replace('_', ' ') == s:
+        #     return res
+        # else:
+        #     return
     else:
         return
 
@@ -183,5 +184,5 @@ if __name__ == '__main__':
     query_file = '../data/queries.txt'
     output_folder = '../dictionaries'
 
-    # collect_entity_information(table_file, query_file, output_folder, cont=True)
-    collect_wikipages_queries(query_file, output_folder)
+    collect_entity_information(table_file, query_file, output_folder, cont=True)
+    # collect_wikipages_queries(query_file, output_folder)
