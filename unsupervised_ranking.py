@@ -208,8 +208,8 @@ def search_query_multi_field(es, query, index='multi-field', size=10, search_typ
                             'multi_match': {
                                 "query": query,
                                 "type": agg_type,
-                                "fields": ["multi-fields.caption", "multi-fields.pgTitle", "multi-fields.secondTitle",
-                                           "multi-fields.table_headings", "multi-fields.table_body"]
+                                "fields": ["multi-field.caption", "multi-field.pgTitle", "multi-field.secondTitle",
+                                           "multi-field.table_headings", "multi-field.table_body"]
 
                             }
                         }
@@ -263,7 +263,7 @@ def get_all_scores(es, queries, method='single-field', name='rankings.json'):
 
         query_results = {}
         for item in results:
-            query_results[item['_index']] = item['_score']
+            query_results[item['_id']] = item['_score']
 
         scores[query] = query_results
 

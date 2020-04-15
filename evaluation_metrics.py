@@ -10,6 +10,9 @@ def compute_NDCG(rankings, predictions, n):
     :param n:
     :return:
     """
+    if len(predictions) < n:
+        predictions.extend([0] * (n - len(predictions)))
+        rankings.extend([0] * (n - len(rankings)))
     indices = np.argsort(predictions)[::-1]
     relevant_values = np.array(rankings)[indices]
     DCG = 0
@@ -29,6 +32,9 @@ def compute_ERR(rankings, predictions, n):
     :param n:
     :return:
     """
+    if len(predictions) < n:
+        predictions.extend([0] * (n - len(predictions)))
+        rankings.extend([0] * (n - len(rankings)))
     indices = np.argsort(predictions)[::-1]
     relevant_values = np.array(rankings)[indices]
     p = 1
@@ -43,5 +49,5 @@ def compute_ERR(rankings, predictions, n):
 if __name__ == '__main__':
     ranks = [1, 2, 3, 0, 3, 2]
     predictions = [0.2, 0.1, 0.5, 0.4, 0.7, 0.6]
-    performance = compute_ERR(ranks, predictions, 5)
+    performance = compute_ERR(ranks, predictions, 10)
     print("performance ", performance)
