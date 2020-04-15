@@ -1,13 +1,13 @@
 import pandas as pd
 import json
 from baseline_features import compute_baseline_features
-# from semantic_features import compute_semantic_features
+from semantic_features import compute_semantic_features
 
 
 FINAL_HEADERS = ['query_id', 'query', 'table_id', 'row', 'col', 'nul', 'in_link', 'out_link', 'pgcount', 'tImp',
                  'tPF', 'leftColhits', 'SecColhits', 'bodyhits', 'PMI', 'qInPgTitle', 'qInTableTitle', 'yRank',
                  'csr_score', 'idf1', 'idf2', 'idf3', 'idf4', 'idf5', 'idf6', 'max', 'sum', 'avg', 'sim', 'emax',
-                 'esum', 'eavg', 'esim', 'cmax', 'csum', 'cavg', 'csim', 'remax', 'resum', 'reavg', ' resim',
+                 'esum', 'eavg', 'esim', 'cmax', 'csum', 'cavg', 'csim', 'remax', 'resum', 'reavg', 'resim',
                  'query_l', 'rel']
 
 INPUT_FILE_QRELS = 'data/qrels.txt'
@@ -56,7 +56,7 @@ def feature_extraction(input_file_qrels: str, input_file_queries: str, input_fil
     mid_time = time.time()
     print(f'---------- TOOK {mid_time - start_time} SECONDS FOR BASELINE FEATURE EXTRACTION ----------')
     print('---------- START COMPUTING SEMANTIC FEATURES ----------')
-    # data_table = compute_semantic_features(data_table, query_col, table_col)
+    data_table = compute_semantic_features(data_table, query_col, table_col)
     print(f'---------- TOOK {time.time() - mid_time} SECONDS FOR SEMANTIC FEATURE EXTRACTION ----------')
 
     print("Computing all features completed")
