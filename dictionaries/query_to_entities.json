@@ -1,30 +1,30 @@
 {
     "1": [
-        "Interest", "Table", "World"
+        "Interest", "Interest_rate", "Rate", "Table", "World"
     ],
     "2": [
-        "2008", "Beijing"
+        "2008", "2008_Summer_Olympics", "Beijing", "Olympic_Games"
     ],
     "3": [
-        "Fast"
+        "Car", "Fast", "Production_car_speed_record"
     ],
     "4": [
         "Clothing", "Clothing_sizes"
     ],
     "5": [
-        "Moon", "OF", "The"
+        "Lunar_phase", "Moon", "OF", "Phase", "The"
     ],
     "6": [
-        "By", "Population", "State"
+        "By", "Demographics_of_the_United_States", "List_of_states_and_territories_of_the_United_States_by_population", "Population", "State", "United_States"
     ],
     "7": [
-        "England", "OF"
+        "England", "Minister", "OF", "Prime_minister", "Prime_number"
     ],
     "8": [
-        "IPod"
+        "IPod", "Model"
     ],
     "9": [
-        "BitTorrent"
+        "BitTorrent", "Client", "Comparison_of_BitTorrent_clients"
     ],
     "10": [
         "Digital", "Olympus"
@@ -33,52 +33,52 @@
         "Composition", "OF", "Sun", "The", "The_Sun"
     ],
     "12": [
-        "Running"
+        "Running", "Shoe", "Sneakers"
     ],
     "13": [
-        "Consumption", "Fuel"
+        "Consumption", "Fuel", "Fuel_efficiency"
     ],
     "14": [
-        "Quote", "Stock"
+        "Quote", "Stock", "Table", "Ticker_tape"
     ],
     "15": [
-        "Top"
+        "Film", "Gross_examination", "List_of_highest-grossing_films", "Top"
     ],
     "16": [
-        "Nutrition"
+        "Nutrition", "Value_(ethics)"
     ],
     "17": [
-        "And", "In", "State"
+        "And", "Capital", "City", "In", "Large", "List_of_largest_cities", "Lists_of_capitals", "State", "US_(disambiguation)"
     ],
     "18": [
-        "Professional"
+        "Professional", "Professional_wrestling", "Wrestling"
     ],
     "19": [
-        "Company", "Income"
+        "Company", "Income", "Statement"
     ],
     "20": [
-        "Dog"
+        "Breed", "Dog", "Dog_breed"
     ],
     "21": [
-        "Ibanez"
+        "Guitar", "Ibanez"
     ],
     "22": [
-        "Used"
+        "Mobile_phone", "Used"
     ],
     "23": [
-        "World", "World_religions"
+        "Religion", "World", "World_religions"
     ],
     "24": [
         "Stocks"
     ],
     "25": [
-        "Academy", "Academy_Awards"
+        "Academy", "Academy_Awards", "Award"
     ],
     "26": [
-        "2008", "Gold", "Gold_medal", "Medal", "Olympic", "Winners"
+        "2008", "Gold", "Gold_medal", "Medal", "Olympic", "Olympic_medal", "Winners"
     ],
     "27": [
-        "Different", "OF"
+        "Country", "Currency", "Different", "OF"
     ],
     "28": [
         "Discoveries", "Science"
@@ -87,88 +87,96 @@
         "Leaderboard"
     ],
     "30": [
-        "Pain"
+        "Analgesic", "Medication", "Pain"
     ],
     "31": [
-        "City", "Football"
+        "City", "Club", "Football", "Football_team"
     ],
     "32": [
-        "Cost", "Food", "Healthy_food"
+        "Cost", "Food", "Health", "Healthy_food"
     ],
-    "33": [],
+    "33": [
+        "Capital", "Tourism"
+    ],
     "34": [
-        "Mortality"
+        "Disease", "Mortality"
     ],
     "35": [
-        "Cigarette", "Market", "Market_share", "Share"
+        "Brand", "Cigarette", "Market", "Market_share", "Share"
     ],
     "36": [
-        "Market", "Market_share", "Share"
+        "Apple", "Market", "Market_share", "Share"
     ],
     "37": [
-        "Food", "Healthy_food", "Nutritional_value", "Value"
+        "Food", "Health", "Healthy_food", "Nutrition", "Nutritional_value", "Value"
     ],
-    "38": [],
+    "38": [
+        "Effect", "Hormone"
+    ],
     "39": [
-        "Household", "Household_chemicals", "Strength"
+        "Chemical_substance", "Household", "Household_chemicals", "Strength"
     ],
     "40": [
-        "Altitude"
+        "Altitude", "Lake"
     ],
-    "41": [],
+    "41": [
+        "Central_processing_unit", "Laptop"
+    ],
     "42": [
-        "Asian", "Currency"
+        "Asian", "Country", "Currency", "List_of_sovereign_states_and_dependent_territories_in_Asia"
     ],
-    "43": [],
+    "43": [
+        "Disease", "Risk"
+    ],
     "44": [
-        "Capacity", "External"
+        "Capacity", "Drive", "External"
     ],
     "45": [
         "Baseball", "Captain", "TEAMS"
     ],
     "46": [
-        "Maryland", "Population"
+        "County", "List_of_counties_in_Maryland", "Maryland", "Population"
     ],
     "47": [
-        "Capital"
+        "Capital", "Country"
     ],
     "48": [
-        "Incidence"
+        "Disease", "Incidence"
     ],
     "49": [
-        "Year"
+        "Country", "European_Union", "Join", "Member_state_of_the_European_Union", "Year"
     ],
     "50": [
-        "Area", "Irish"
+        "Area", "Counties_of_Ireland", "County", "Irish"
     ],
     "51": [
-        "Nutritional_value", "Value"
+        "Cereal", "Nutrition", "Nutritional_value", "Value"
     ],
     "52": [
-        "ERP", "Price"
+        "ERP", "Price", "System"
     ],
     "53": [
-        "Life", "Life_span", "Span"
+        "Cat", "Life", "Life_span", "Span"
     ],
     "54": [
-        "Broadway", "Director"
+        "Broadway", "Broadway_theatre", "Director", "Musical_theatre"
     ],
     "55": [
-        "Treatment"
+        "Infection", "Treatment"
     ],
     "56": [
         "Food", "Type"
     ],
     "57": [
-        "Board", "Number", "OF", "Players"
+        "Board", "Board_game", "Game", "Number", "OF", "Players"
     ],
     "58": [
-        "Google"
+        "Google", "List_of_Google_products", "Product", "Review"
     ],
     "59": [
         "Constellation"
     ],
     "60": [
-        "Age"
+        "Age", "Game"
     ]
 }
