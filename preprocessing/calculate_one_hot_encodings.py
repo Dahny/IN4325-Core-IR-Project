@@ -14,7 +14,8 @@ for k, v in tqdm(dict_information.items()):
     category_index_list += v['categories']
     entity_index_list += v['outlinks'] + v['inlinks'] + [k]
 
-
+category_index_list = [x.lower() for x in category_index_list]
+entity_index_list = [x.lower() for x in entity_index_list]
 category_index_list = list(set(category_index_list))
 entity_index_list = list(set(entity_index_list))
 
@@ -34,12 +35,17 @@ for k, v in tqdm(dict_information.items()):
     category_indices = []
 
     for category in v['categories']:
-        category_indices.append(category_index_dict[category])
+        category_indices.append(category_index_dict[category.lower()])
     for entity in set(v['outlinks'] + v['inlinks'] + [k]):
-        entity_indices.append(entity_index_dict[entity])
+        entity_indices.append(entity_index_dict[entity.lower()])
+    
+    categories_dictionaries[k.lower()] = {}
+    for index in category_indices:
+        categories_dictionaries[k.lower()][index] = 1
 
-    categories_dictionaries[k] = category_indices
-    entities_dictionaries[k] = entity_indices
+    entities_dictionaries[k.lower()] = {}
+    for index in entity_indices:
+        entities_dictionaries[k.lower()][index] = 1
 
 
 write_dictionary_to_file(entities_dictionaries, '../dictionaries/link_indices.json')

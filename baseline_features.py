@@ -93,6 +93,9 @@ def compute_baseline_features(data_table, query_col='query', table_col='raw_tabl
         else:
             data_table[k] = data_table.apply(lambda x: v(x[query_col], x[table_col]), axis=1)
 
+    # Free memory?
+    dict_information = 0
+
     return data_table
 
 

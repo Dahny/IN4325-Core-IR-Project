@@ -10,11 +10,15 @@ from gensim.models import KeyedVectors
 
 from sklearn.metrics.pairwise import cosine_similarity
 
+from tqdm import tqdm
+
+
 import re
 import os
 import time
 import requests
 import json
+import math
 
 from preprocessing.utils import list_to_ngrams, read_json, preprocess_string, read_one_hot_encoding
 
@@ -97,16 +101,22 @@ def compute_semantic_features(data_table, query_col='query', table_col='raw_tabl
         zip(*pd.concat([q_entity_embeddings, t_entity_embeddings], axis=1).apply(
             lambda x: late_fusion(x.iloc[0], x.iloc[1]), axis=1))
 
-    data_table['csim'] = pd.concat([q_bag_of_categories, t_bag_of_categories], axis=1).apply(
-        lambda x: early_fusion_only_indexes(x.iloc[0], x.iloc[1]), axis=1)
-    data_table['cavg'], data_table['cmax'], data_table['csum'] = \
-        zip(*pd.concat([q_bag_of_categories, t_bag_of_categories], axis=1).apply(
-            lambda x: late_fusion_only_indexes(x.iloc[0], x.iloc[1]), axis=1))
+    tqdm.pandas()
 
-    data_table['esim'] = pd.concat([q_bag_of_entities, t_bag_of_entities], axis=1).apply(
+    print('start one hot vectors')
+    data_table['csim'] = pd.concat([q_bag_of_categories, t_bag_of_categories], axis=1).progress_apply(
         lambda x: early_fusion_only_indexes(x.iloc[0], x.iloc[1]), axis=1)
+    print('done early categories')
+    data_table['cavg'], data_table['cmax'], data_table['csum'] = \
+        zip(*pd.concat([q_bag_of_categories, t_bag_of_categories], axis=1).progress_apply(
+            lambda x: late_fusion_only_indexes(x.iloc[0], x.iloc[1]), axis=1))
+    print('done categories')
+
+    data_table['esim'] = pd.concat([q_bag_of_entities, t_bag_of_entities], axis=1).progress_apply(
+        lambda x: early_fusion_only_indexes(x.iloc[0], x.iloc[1]), axis=1)
+    print('done early entities')
     data_table['eavg'], data_table['emax'], data_table['esum'] = \
-        zip(*pd.concat([q_bag_of_entities, t_bag_of_entities], axis=1).apply(
+        zip(*pd.concat([q_bag_of_entities, t_bag_of_entities], axis=1).progress_apply(
             lambda x: late_fusion_only_indexes(x.iloc[0], x.iloc[1]), axis=1))
 
     return data_table
@@ -171,9 +181,12 @@ def get_one_hot_encodings(entities, dictionairy):
 
     for entity in entities:
         try:
-            result.append(dictionairy[entity])
+            result.append(dictionairy[entity.lower()])
         except KeyError:
             failed_entities.append(entity)
+
+    # if len(failed_entities) > 0:
+    #    print(failed_entities)
 
     return np.array(result)
 
@@ -194,7 +207,7 @@ def early_fusion_only_indexes(query_entities, table_entities):
 
     query_average = {}
     for entity in query_entities:
-        for index in entity:
+        for index in entity.keys():
             if index in query_average:
                 query_average[index] += 1
             else:
@@ -202,7 +215,7 @@ def early_fusion_only_indexes(query_entities, table_entities):
 
     table_average = {}
     for entity in table_entities:
-        for index in entity:
+        for index in entity.keys():
             if index in table_average:
                 table_average[index] += 1
             else:
@@ -243,11 +256,13 @@ def late_fusion_only_indexes(query_entities, table_entities):
     for i, q in enumerate(query_entities):
         for j, t in enumerate(table_entities):
             sim = 0
-            for index in q:
+            for index in q.keys():
                 if index in t:
                     sim += 1
-            all_pairs[i*len(table_entities)+j] = sim
-
+            if sim > 0:
+                all_pairs[i*len(table_entities)+j] = sim  / (math.sqrt(len(q)) * math.sqrt(len(t)))
+            else:
+                all_pairs[i*len(table_entities)+j] = 0
     return all_pairs.mean(), all_pairs.max(), all_pairs.sum()
 
 
