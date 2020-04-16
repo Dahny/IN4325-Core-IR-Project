@@ -195,7 +195,7 @@ def get_one_hot_encodings(entities, dictionairy):
 def early_fusion(query, table):
     ''' Calculate the centroids for both query and table vectors and return similarity between them '''
     if len(query) == 0 or len(table) == 0:
-        return -1
+        return 0
     average_query = query.mean(axis=0)
     average_table = table.mean(axis=0)
     return cosine_similarity(average_query.reshape(1, -1), average_table.reshape(1, -1))[0][0]
@@ -203,7 +203,7 @@ def early_fusion(query, table):
 
 def early_fusion_only_indexes(query_entities, table_entities):
     if len(query_entities) == 0 or len(table_entities) == 0:
-        return -1
+        return 0
 
     query_average = {}
     for entity in query_entities:
@@ -222,12 +222,18 @@ def early_fusion_only_indexes(query_entities, table_entities):
                 table_average[index] = 1
     
     result = 0
+    result_q = 0
+    result_t = 0
 
     for q, v in query_average.items():
+        result_q += math.pow(v / len(query_entities), 2)
         if q in table_average:
             result += v / len(query_entities) * table_average[q] / len(table_entities)
 
-    return result
+    for t, v in table_average.items():
+        result_t += math.pow(v / len(table_entities), 2)
+
+    return result / (math.sqrt(result_t) * math.sqrt(result_q))
 
 
 def early_fusion_incl_tfidf(query, table):
@@ -238,7 +244,7 @@ def early_fusion_incl_tfidf(query, table):
 def late_fusion(query, table):
     ''' Calculate the cosine similarity between all vector pairs between query and table and return the avg, max and sum '''
     if len(query) == 0 or len(table) == 0:
-        return -1, -1, -1
+        return 0, 0, 0
 
     all_pairs = np.zeros(len(query) * len(table))
     for i, q in enumerate(query):
@@ -250,7 +256,7 @@ def late_fusion(query, table):
 
 def late_fusion_only_indexes(query_entities, table_entities):
     if len(query_entities) == 0 or len(table_entities) == 0:
-        return -1, -1, -1
+        return 0, 0, 0
 
     all_pairs = np.zeros(len(query_entities) * len(table_entities))
     for i, q in enumerate(query_entities):
