@@ -121,13 +121,53 @@ def ndcg_at_k(r, k, method=0):
     return dcg_at_k(r, k, method) / dcg_max
 
 
+def sort_qrels(qrels):
+    qrels_sorted = {}
+    for _, field in qrels.iterrows():
+        if qrels_sorted.get(field['query_id']) is None:
+            qrels_sorted[field['query_id']] = {field['table_id']: field['rel']}
+        else:
+            qrels_sorted[field['query_id']][field['table_id']] = field['rel']
+    return qrels_sorted
+
+# ignoring query 12 as it has no valuable ground truth
+def get_avg_NDCG_Score(sorted_rels, sorted_scores, n=20):
+    output = 0
+
+    for i, query_ranks in enumerate(sorted_rels):
+        # Using the method of lisa (query 12 gives NaN so I just add 1)
+        ndcg = compute_NDCG(query_ranks, sorted_scores[i], n)
+        if math.isnan(ndcg):
+            output += 0
+        else:
+            output += ndcg
+
+    output = output / 59
+    return output
+
+
+def get_avg_ERR_Score(sorted_rels, sorted_scores, n=20):
+    output = 0
+
+    for i, query_ranks in enumerate(sorted_rels):
+        # Using the method of lisa (query 12 gives NaN so I just add 1)
+        ndcg = compute_ERR(query_ranks, sorted_scores[i], n)
+        if math.isnan(ndcg):
+            output += 0
+        else:
+            output += ndcg
+
+    output = output / 59
+    return output
+
+
 def compute_NDCG_multi_field_example():
     multi_field = pd.read_csv("C:/Users/Dplen/Documents/IN4325-Core-IR-Project/data/multi_field.txt", sep="\t",
                               header=None)
     qrels = read_qrels(INPUT_FILE_QRELS)
 
     # Get rankings and predictions
-    scores = multi_field[4]
+    scores = multi_field[3]
     multi_field = multi_field[2]
 
     qrels_sorted = {}
@@ -158,17 +198,16 @@ def compute_NDCG_multi_field_example():
         #output += ndcg_at_k(query_ranks, 20, method=0)
 
         # Using sklearn method
-        output += ndcg_score(np.asarray([query_ranks]), np.asarray([sorted_scores[i]]))
+        #output += ndcg_score(np.asarray([query_ranks]), np.asarray([sorted_scores[i]]), 10)
 
         # Using the method of lisa (query 12 gives NaN so I just add 1)
-        # ndcg = compute_NDCG(query_ranks, sorted_scores[i], 20)
-        # if math.isnan(ndcg):
-        #     output += 1
-        # else:
-        #     output += ndcg
-        print('output for query ', i, ':', output)
+        ndcg = compute_NDCG(query_ranks, sorted_scores[i], 20)
+        if math.isnan(ndcg):
+            output += 0
+        else:
+            output += ndcg
 
-    output = output / 60
+    output = output / 59
     return output
 
 
