@@ -21,13 +21,13 @@ def compute_NDCG(rankings, predictions, n):
     relevant_values = np.array(rankings)[indices]
     DCG = 0
     IDCG = 0
-    sorted_rankings = np.sort(relevant_values[:n])[::-1]
+    sorted_rankings = np.sort(rankings)[::-1][:n]
     for i in range(n):
         DCG += (pow(2, relevant_values[i]) - 1) / math.log(i + 2, 2)
         IDCG += (pow(2, sorted_rankings[i]) - 1) / math.log(i + 2, 2)
     if IDCG == 0:
         return
-    else:
+    else: 
         return DCG / IDCG
 
 
