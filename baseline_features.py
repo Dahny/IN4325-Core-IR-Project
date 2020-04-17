@@ -33,7 +33,7 @@ with open('data/multi_field_rankings.json') as f:
     f.close()
 
 print('----- START READING INFORMATION FILE -----')
-dict_information = get_entity_to_information_dict('dictionaries/entities_to_information.csv')
+# dict_information = get_entity_to_information_dict('dictionaries/entities_to_information.csv')
 print('----- FINISHED READING INFORMATION FILE -----')
 
 # Total number of documents

@@ -25,7 +25,11 @@ def compute_NDCG(rankings, predictions, n):
     for i in range(n):
         DCG += (pow(2, relevant_values[i]) - 1) / math.log(i + 2, 2)
         IDCG += (pow(2, sorted_rankings[i]) - 1) / math.log(i + 2, 2)
-    return DCG / IDCG
+    if IDCG == 0:
+        res = 1
+    else:
+        res = DCG / IDCG
+    return res
 
 
 def compute_ERR(rankings, predictions, n):
