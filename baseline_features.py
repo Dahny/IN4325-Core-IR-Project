@@ -9,28 +9,28 @@ import math
 from nltk import word_tokenize
 from preprocessing.utils import preprocess_string, get_entity_to_information_dict, read_json
 
-# Load lookup dictionaries
-with open('dictionaries/words_page_titles.json') as f:
-    dict_page_titles = json.load(f)
-    f.close()
-with open('dictionaries/words_section_titles.json') as f:
-    dict_section_titles = json.load(f)
-    f.close()
-with open('dictionaries/words_captions.json') as f:
-    dict_captions = json.load(f)
-    f.close()
-with open('dictionaries/words_headers.json') as f:
-    dict_headers = json.load(f)
-    f.close()
-with open('dictionaries/words_data.json') as f:
-    dict_data = json.load(f)
-    f.close()
-with open('dictionaries/wikipages_per_query.json') as f:
-    dict_query_wikipages = json.load(f)
-    f.close()
-with open('data/multi_field_rankings.json') as f:
-    rankings = json.load(f)
-    f.close()
+# # Load lookup dictionaries
+# with open('dictionaries/words_page_titles.json') as f:
+#     dict_page_titles = json.load(f)
+#     f.close()
+# with open('dictionaries/words_section_titles.json') as f:
+#     dict_section_titles = json.load(f)
+#     f.close()
+# with open('dictionaries/words_captions.json') as f:
+#     dict_captions = json.load(f)
+#     f.close()
+# with open('dictionaries/words_headers.json') as f:
+#     dict_headers = json.load(f)
+#     f.close()
+# with open('dictionaries/words_data.json') as f:
+#     dict_data = json.load(f)
+#     f.close()
+# with open('dictionaries/wikipages_per_query.json') as f:
+#     dict_query_wikipages = json.load(f)
+#     f.close()
+# with open('data/multi_field_rankings.json') as f:
+#     rankings = json.load(f)
+#     f.close()
 
 print('----- START READING INFORMATION FILE -----')
 # dict_information = get_entity_to_information_dict('dictionaries/entities_to_information.csv')
