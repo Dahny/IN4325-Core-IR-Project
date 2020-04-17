@@ -1,8 +1,10 @@
-from extraction import read_tables, INPUT_FILE_TABLES, read_queries, INPUT_FILE_QUERIES
+from extraction import read_tables, INPUT_FILE_TABLES, read_queries, INPUT_FILE_QUERIES, read_qrels, INPUT_FILE_QRELS
 from elasticsearch import Elasticsearch
 from elasticsearch import helpers
 from preprocessing.utils import preprocess_string
 from nltk.corpus import stopwords
+from nltk import word_tokenize
+from evaluation_metrics import compute_NDCG, sort_qrels, get_avg_NDCG_Score, get_avg_ERR_Score
 import rank_bm25
 import pandas as pd
 import json
@@ -31,8 +33,10 @@ def generate_features(method='single-field'):
 
         if method == 'single-field':
             data = single_field_representation(table, pgTitle, secondTitle, caption, table_headings, table_body)
+            print('done with table:', table)
         elif method == 'multi-field':
             data = multi_field_representation(table, pgTitle, secondTitle, caption, table_headings, table_body)
+            print('done with table:', table)
         else:
             # This should never happen
             raise Exception("No document representation method is chosen")
@@ -272,6 +276,109 @@ def get_all_scores(es, queries, method='single-field', name='rankings.json'):
     file.close()
 
 
+def get_ev_metric(es, queries, n=20, method='NCDG'):
+    qrels = read_qrels(INPUT_FILE_QRELS)
+    sorted_qrels = sort_qrels(qrels)
+
+    sorted_ranks_s = []
+    sorted_rels_s = []
+    sorted_ranks_m = []
+    sorted_rels_m = []
+    for i, query in queries.items():
+        results_s = search_query_single_field(es, query, size=20)['hits']['hits']
+        results_m = search_query_multi_field(es, query, size=20)['hits']['hits']
+        query_ranks_s = []
+        query_rels_s = []
+        query_ranks_m = []
+        query_rels_m = []
+        for j, rank in enumerate(results_s, start=1):
+            query_ranks_s.append(j)
+            # If there is no info about the table use 0 rel
+            if sorted_qrels[i].get(rank['_id']) is None:
+                query_rels_s.append(0)
+            else:
+                query_rels_s.append(sorted_qrels[i][rank['_id']])
+        for j, rank in enumerate(results_m, start=1):
+            query_ranks_m.append(j)
+            # If there is no info about the table use 0 rel
+            if sorted_qrels[i].get(rank['_id']) is None:
+                query_rels_m.append(0)
+            else:
+                query_rels_m.append(sorted_qrels[i][rank['_id']])
+        sorted_ranks_s.append(query_ranks_s)
+        sorted_rels_s.append(query_rels_s)
+        sorted_ranks_m.append(query_ranks_m)
+        sorted_rels_m.append(query_rels_m)
+
+    if method == 'NCDG':
+        ncdg_score_s = get_avg_NDCG_Score(sorted_rels_s, sorted_ranks_s, n)
+        ncdg_score_m = get_avg_NDCG_Score(sorted_rels_m, sorted_ranks_m, n)
+    if method == 'ERR':
+        ncdg_score_s = get_avg_ERR_Score(sorted_rels_s, sorted_ranks_s, n)
+        ncdg_score_m = get_avg_ERR_Score(sorted_rels_m, sorted_ranks_m, n)
+
+    print("single-field:", ncdg_score_s)
+    print("multi-field:", ncdg_score_m)
+    return ncdg_score_s, ncdg_score_m
+
+
+# TODO rewrite this method as it it a mess
+def supervised_parameter_optimization(es, queries):
+    qrels = read_qrels(INPUT_FILE_QRELS)
+    sorted_qrels = sort_qrels(qrels)
+
+    ncdg_scores_single_field = {}
+    ncdg_scores_multi_field = {}
+    for step in range(10, 510, 10):
+        sorted_ranks_s = []
+        sorted_rels_s = []
+        sorted_ranks_m = []
+        sorted_rels_m = []
+        change_similarity_Dirichlet(es, mu=step, index="_all")
+        for i, query in queries.items():
+            results_s = search_query_single_field(es, query, size=20)['hits']['hits']
+            results_m = search_query_multi_field(es, query, size=20)['hits']['hits']
+            query_ranks_s = []
+            query_rels_s = []
+            query_ranks_m = []
+            query_rels_m = []
+            for j, rank in enumerate(results_s, start=1):
+                query_ranks_s.append(j)
+                # If there is no info about the table use 0 rel
+                if sorted_qrels[i].get(rank['_id']) is None:
+                    query_rels_s.append(0)
+                else:
+                    query_rels_s.append(sorted_qrels[i][rank['_id']])
+            for j, rank in enumerate(results_m, start=1):
+                query_ranks_m.append(j)
+                # If there is no info about the table use 0 rel
+                if sorted_qrels[i].get(rank['_id']) is None:
+                    query_rels_m.append(0)
+                else:
+                    query_rels_m.append(sorted_qrels[i][rank['_id']])
+            sorted_ranks_s.append(query_ranks_s)
+            sorted_rels_s.append(query_rels_s)
+            sorted_ranks_m.append(query_ranks_m)
+            sorted_rels_m.append(query_rels_m)
+
+        ncdg_score_s = get_avg_NDCG_Score(sorted_rels_s, sorted_ranks_s)
+        ncdg_scores_single_field[step] = ncdg_score_s
+        ncdg_score_m = get_avg_NDCG_Score(sorted_rels_m, sorted_ranks_m)
+        ncdg_scores_multi_field[step] = ncdg_score_m
+        print("score for step:", step, "single-field:", ncdg_score_s)
+        print("score for step:", step, "multi-field:", ncdg_score_m)
+
+    # Get best mu for single and multi
+    best_mu_single = max(ncdg_scores_single_field, key=ncdg_scores_single_field.get)
+    best_mu_multi = max(ncdg_scores_multi_field, key=ncdg_scores_multi_field.get)
+    print('single:', ncdg_scores_single_field)
+    print('multi', ncdg_scores_multi_field)
+    return best_mu_single, best_mu_multi
+
+
+
+
+
 def pipeline(host='localhost', port=9200):
     print("Starting pipeline...")
 
@@ -280,8 +387,8 @@ def pipeline(host='localhost', port=9200):
 
     # Extract text from tables
     print("Extracting Features")
-    s_features = generate_features(es, 'single-field')
-    m_features = generate_features(es, 'multi-field')
+    s_features = generate_features('single-field')
+    m_features = generate_features('multi-field')
 
     # Create indices
     print("Creating indices")
