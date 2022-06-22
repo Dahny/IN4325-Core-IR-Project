@@ -10,7 +10,7 @@ chardet==3.0.4
 certifi==2019.11.28
 nltk==3.4.5
 six==1.14.0
-numpy==1.18.1
+numpy==1.22.0
 pandas==1.0.1
 beautifulsoup4==4.8.2
 wikipedia==1.4.0
